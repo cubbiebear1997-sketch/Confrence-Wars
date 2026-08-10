@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONFERENCE WARS — Realignment Tycoon</title>
+<meta name="description" content="Run a college football conference through 30 years of TV money, poaching, and betrayal. Start in 1989, 1999, or 2005 — save the SWC, rescue the Big East, or become the Super League.">
+<meta property="og:title" content="CONFERENCE WARS — Realignment Tycoon">
+<meta property="og:description" content="Pick a league. Survive the realignment era. Free browser strategy game — daily challenge included.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b1526">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
+<style>
+  :root{
+    --bg:#0b1526; --bg2:#0f1e33; --panel:#122441; --panel2:#16305a26;
+    --line:#1e3a5f; --ink:#e6eefc; --dim:#8fa8c9; --faint:#5b729447;
+    --teal:#2dd4bf; --teal-d:#14b8a6; --gold:#f5b83d; --red:#f87171; --green:#4ade80;
+    --b1g:#4f8ef7; --sec:#f5b83d; --acc:#a78bfa; --b12:#f87171; --pac:#2dd4bf; --be:#f472b6; --g5:#7b8fa8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 70% -10%, #16305a55, transparent 60%), var(--bg);
+    color:var(--ink); font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px; overflow:hidden;
+  }
+  #app{display:flex;flex-direction:column;height:100vh}
+
+  /* ---------- top bar ---------- */
+  #topbar{
+    display:flex;align-items:center;gap:14px;padding:10px 16px;
+    background:linear-gradient(180deg,#122441,#0f1e33); border-bottom:1px solid var(--line);
+  }
+  .logo{font-weight:800;letter-spacing:2.5px;font-size:17px;white-space:nowrap}
+  .logo b{color:var(--teal)}
+  .logo small{display:block;font-size:9px;letter-spacing:3.5px;color:var(--dim);font-weight:600}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 12px;text-align:center}
+  .chip .k{font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase}
+  .chip .v{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+  .chip .v.teal{color:var(--teal)} .chip .v.gold{color:var(--gold)}
+  #confChip .v{font-size:14px}
+  .spacer{flex:1}
+  button{
+    font-family:inherit;border:none;border-radius:9px;cursor:pointer;font-weight:700;
+    letter-spacing:.4px;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+    padding:8px 14px;transition:filter .12s, transform .05s;
+  }
+  button:hover{filter:brightness(1.18)} button:active{transform:translateY(1px)}
+  button:disabled{opacity:.38;cursor:not-allowed;filter:none}
+  .btn-cta{
+    background:linear-gradient(180deg,var(--teal),var(--teal-d));color:#04241f;font-size:15px;
+    padding:11px 22px;border:none;box-shadow:0 0 18px #14b8a655;letter-spacing:1px;
+  }
+  .btn-gold{background:linear-gradient(180deg,#f5b83d,#d99a18);color:#2a1c00;border:none}
+  .btn-ghost{background:transparent}
+
+  /* ---------- main grid ---------- */
+  #main{display:grid;grid-template-columns:296px 1fr 344px;gap:12px;padding:12px 14px;flex:1;min-height:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .ph{padding:9px 13px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px}
+  .ph .right{margin-left:auto;letter-spacing:0}
+  .pb{padding:10px 12px;overflow-y:auto;flex:1;min-height:0}
+  .pb::-webkit-scrollbar,#news::-webkit-scrollbar{width:8px}
+  .pb::-webkit-scrollbar-thumb,#news::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:4px}
+
+  /* left column */
+  #left{display:flex;flex-direction:column;gap:12px;min-height:0}
+  #myStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:11px 12px}
+  .stat{background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .stat .k{font-size:9px;letter-spacing:1.2px;color:var(--dim);text-transform:uppercase}
+  .stat .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+  .stat .s{font-size:10px;color:var(--dim)}
+  #tvRow{grid-column:1/-1;display:flex;align-items:center;gap:10px}
+  #tvRow .bar{flex:1;height:6px;background:var(--faint);border-radius:3px;overflow:hidden}
+  #tvRow .bar i{display:block;height:100%;background:var(--gold)}
+  #memberList{display:flex;flex-direction:column;gap:5px}
+  .mem{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid transparent;border-radius:8px;padding:6px 9px;cursor:pointer}
+  .mem:hover{border-color:var(--teal-d)}
+  .mem .ab{font-weight:800;width:38px;font-size:12px}
+  .mem .nm{flex:1;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mem .mood{width:52px;height:5px;background:var(--faint);border-radius:3px;overflow:hidden}
+  .mem .mood i{display:block;height:100%}
+  .mem .br{font-size:10.5px;color:var(--dim);width:26px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* center */
+  #center{display:flex;flex-direction:column;gap:12px;min-height:0}
+  #mapPanel{flex:1;min-height:0;position:relative}
+  #mapPanel svg{width:100%;height:100%;display:block;cursor:grab}
+  #mapPanel svg.dragging{cursor:grabbing}
+  #zoomCtl{position:absolute;right:12px;top:42px;display:flex;flex-direction:column;gap:6px;z-index:5}
+  .zbtn{width:34px;height:34px;padding:0;font-size:17px;font-weight:800;background:#0b1526d9;border:1px solid var(--line);border-radius:8px}
+  #legend{position:absolute;left:12px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;max-width:85%}
+  .lg{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--dim);background:#0b1526cc;border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .lg i{width:8px;height:8px;border-radius:50%}
+  #tip{position:absolute;pointer-events:none;background:#0b1526f2;border:1px solid var(--teal-d);border-radius:9px;padding:9px 11px;font-size:11.5px;display:none;z-index:30;min-width:170px;box-shadow:0 6px 24px #0009}
+  #tip .t{font-weight:800;font-size:13px}
+  #tip .c{color:var(--dim);margin-bottom:5px}
+  #tip .row{display:flex;justify-content:space-between;gap:14px}
+  #tip .row span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+  #standings{height:186px;flex:none}
+  #standTable{width:100%;border-collapse:collapse;font-size:11.5px}
+  #standTable td{padding:3.5px 6px;border-bottom:1px solid #1e3a5f55;font-variant-numeric:tabular-nums;white-space:nowrap}
+  #standTable td.cn{font-weight:800}
+  #standTable .payBar{width:36%}
+  #standTable .payBar .bar{height:6px;background:var(--faint);border-radius:3px;overflow:hidden}
+  #standTable .payBar .bar i{display:block;height:100%}
+  #standTable tr.me td{background:#14b8a611}
+
+  /* right */
+  #right{display:flex;flex-direction:column;gap:12px;min-height:0}
+  #actionsBody{display:flex;flex-direction:column;gap:6px;padding:10px 12px}
+  .act{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:5px 9px;cursor:pointer;text-align:left}
+  .act:hover{border-color:var(--teal-d);filter:none}
+  .act .ic{font-size:16px;width:22px;text-align:center}
+  .act .tx{flex:1}
+  .act .tt{font-size:12.5px;font-weight:700}
+  .act .td{font-size:10.5px;color:var(--dim);font-weight:400}
+  .act .ap{font-size:10px;font-weight:800;color:var(--gold);white-space:nowrap}
+  #newsPanel{flex:1;min-height:0}
+  #news{overflow-y:auto;flex:1;min-height:0;padding:9px 10px;display:flex;flex-direction:column;gap:8px}
+  .nw{display:flex;gap:10px;font-size:13.2px;line-height:1.55;color:#eef4ff;background:#13253f;border-left:3px solid var(--dim);border-radius:0 9px 9px 0;padding:8px 11px;animation:slidein .25s ease}
+  .nw.poach{border-left-color:var(--red);background:#1a2440} .nw.money{border-left-color:var(--teal)} .nw.event{border-left-color:var(--gold)} .nw.good{border-left-color:var(--green)}
+  .nw b{color:#fff}
+  .nw .yr{font-size:10.5px;font-weight:800;color:#8fa8c9;padding-top:3px;font-variant-numeric:tabular-nums;flex:none}
+  @keyframes slidein{from{opacity:0;transform:translateY(-5px)}to{opacity:1}}
+
+  /* modal */
+  #shade{position:fixed;inset:0;background:#050b16cc;display:none;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(3px)}
+  #modal{background:linear-gradient(180deg,#16305a,#122441);border:1px solid #2b5386;border-radius:15px;max-width:680px;width:92%;max-height:88vh;overflow-y:auto;padding:22px 24px;box-shadow:0 20px 70px #000c}
+  #modal h2{font-size:19px;letter-spacing:.5px;margin-bottom:4px}
+  #modal .sub{color:var(--dim);font-size:12.5px;margin-bottom:14px}
+  #modal .body{font-size:13px;line-height:1.55}
+  .mrow{display:flex;justify-content:space-between;gap:16px;padding:6px 2px;border-bottom:1px solid #1e3a5f66;font-size:12.5px}
+  .mrow span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+  .odds{font-size:34px;font-weight:900;text-align:center;margin:10px 0 2px}
+  .oddsLbl{text-align:center;color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+  .btnRow{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .btnRow button{flex:1;min-width:130px;padding:11px 10px}
+  .tgl{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-top:12px;cursor:pointer;font-size:12.5px}
+  .tgl input{accent-color:var(--teal);transform:scale(1.2)}
+
+  /* pick screen & end screen share cards */
+  .pickGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .pick{border:1px solid var(--line);border-radius:11px;padding:12px 13px;cursor:pointer;background:var(--bg2);position:relative}
+  .pick:hover{border-color:var(--teal);box-shadow:0 0 14px #14b8a633}
+  .pick .nm{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:7px}
+  .pick .nm i{width:10px;height:10px;border-radius:50%}
+  .pick .meta{font-size:11px;color:var(--dim);margin-top:4px;line-height:1.5}
+  .pick .diff{position:absolute;top:10px;right:11px;font-size:9.5px;letter-spacing:1px;font-weight:800;border-radius:5px;padding:2px 6px}
+  .diff.easy{background:#14532d;color:#86efac} .diff.med{background:#57420b;color:#fde68a} .diff.hard{background:#5c1a1a;color:#fca5a5}
+  .diff.ext{background:#3b1d5c;color:#d8b4fe}
+  .mbtn{font-size:9px;padding:3px 9px;border-radius:5px;letter-spacing:1px;font-weight:800;color:var(--dim)}
+  .mbtn.on{background:var(--teal-d);color:#04241f;border-color:transparent}
+  .moveArc{fill:none;stroke-width:2.4;stroke-dasharray:9 7;stroke-linecap:round;animation:arcdash 1.1s ease-out forwards,arcfade 1.7s ease forwards;pointer-events:none}
+  .pulseC{animation:pulseK .95s ease-out forwards;pointer-events:none}
+  @keyframes arcdash{from{stroke-dashoffset:640}to{stroke-dashoffset:0}}
+  @keyframes arcfade{0%{opacity:0}12%{opacity:.95}75%{opacity:.85}100%{opacity:0}}
+  @keyframes pulseK{0%{r:5;opacity:.95}100%{r:30;opacity:0}}
+  .btn-red{background:linear-gradient(180deg,#ef4444,#b91c1c);color:#fff;border:none}
+  .secLbl{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:800;margin:14px 0 0}
+  .grade{font-size:72px;font-weight:900;text-align:center;line-height:1}
+  .reveal{opacity:0;animation:rev .55s ease forwards}
+  @keyframes rev{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .gradeStamp{opacity:0;animation:stamp .8s cubic-bezier(.2,1.5,.4,1) forwards}
+  @keyframes stamp{0%{transform:scale(2.8) rotate(-7deg);opacity:0}55%{opacity:1}78%{transform:scale(.94) rotate(0)}100%{transform:scale(1);opacity:1}}
+  .recap{margin-top:12px;max-height:230px;overflow-y:auto;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.6}
+  .recap b{color:var(--gold)}
+  #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:-60px;background:#122441;border:1px solid var(--teal-d);color:var(--ink);border-radius:10px;padding:10px 18px;font-size:13px;z-index:80;transition:bottom .3s;box-shadow:0 8px 30px #000a}
+  #toast.on{bottom:22px}
+  .dot{cursor:pointer;transition:r .15s}
+  .kbd{color:var(--dim);font-size:10.5px;letter-spacing:.5px}
+  #coach{position:absolute;left:12px;top:42px;z-index:6;background:#122441f2;border:1px solid var(--teal-d);border-radius:11px;padding:11px 13px;max-width:270px;font-size:12px;line-height:1.65;box-shadow:0 10px 34px #000a}
+  #coach b{color:var(--teal)}
+  #coach .x{position:absolute;top:6px;right:9px;cursor:pointer;color:var(--dim);font-weight:800}
+  #mobNote{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:90;background:#122441f2;border:1px solid var(--line);border-radius:10px;padding:9px 30px 9px 13px;font-size:12px;max-width:92%}
+  #mobNote .x{position:absolute;top:5px;right:9px;cursor:pointer;color:var(--dim);font-weight:800}
+  @media (max-width:920px){ #app{min-width:1180px} body{overflow:auto} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="logo">CONFERENCE <b>WARS</b><small>REALIGNMENT TYCOON</small></div>
+    <div class="chip"><div class="k">Season</div><div class="v" id="uiYear">2005</div></div>
+    <div class="chip" id="confChip"><div class="k">Your Conference</div><div class="v teal" id="uiConf">—</div></div>
+    <div class="chip"><div class="k">Payout / School</div><div class="v gold" id="uiPayout">$0M</div></div>
+    <div class="chip"><div class="k">Nat'l Rank</div><div class="v" id="uiRank">—</div></div>
+    <div class="chip"><div class="k">Actions Left</div><div class="v teal" id="uiAP">2</div></div>
+    <div class="spacer"></div>
+    <button class="btn-ghost" id="btnRich" title="Program and conference valuations — the money behind the map">💰 RICH LIST</button>
+    <button class="btn-ghost" id="btnVault" title="Titles, records, and every move ever made">📜 VAULT</button>
+    <button class="btn-cta" id="btnAdvance">ADVANCE SEASON ▸</button>
+  </div>
+
+  <div id="main">
+    <div id="left">
+      <div class="panel" style="flex:none">
+        <div class="ph">Front Office <span class="right kbd" id="uiEra">BCS ERA</span></div>
+        <div id="myStats">
+          <div class="stat"><div class="k">Media Deal</div><div class="v" id="uiTv">$0M/yr</div><div class="s" id="uiTvNet">—</div></div>
+          <div class="stat"><div class="k">Exit Fee</div><div class="v" id="uiExit">$0M</div><div class="s">per defector</div></div>
+          <div id="tvRow"><span class="kbd" id="uiTvYears">expires 2010</span><div class="bar"><i id="uiTvBar" style="width:50%"></i></div></div>
+          <div class="stat" style="grid-column:1/-1;display:flex;align-items:baseline;gap:8px">
+            <div class="k" style="white-space:nowrap">Footprint</div>
+            <div class="v" id="uiFoot" style="font-size:13px">—</div>
+            <div class="s" id="uiFootNote" style="flex:1;text-align:right"></div>
+          </div>
+          <div class="stat" style="grid-column:1/-1;display:flex;align-items:baseline;gap:8px">
+            <div class="k" style="white-space:nowrap">League Value</div>
+            <div class="v" id="uiVal" style="font-size:13px;color:var(--gold)">—</div>
+            <div class="s" id="uiValNote" style="flex:1;text-align:right"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1">
+        <div class="ph">Members <span class="right kbd" id="uiMemCount"></span></div>
+        <div class="pb" id="memberList"></div>
+      </div>
+    </div>
+
+    <div id="center">
+      <div class="panel" id="mapPanel">
+        <div class="ph">The Landscape
+          <span class="right" style="display:flex;gap:4px;letter-spacing:0;align-items:center">
+            <button class="mbtn on" data-mm="all">ALL</button><button class="mbtn" data-mm="p">POWER</button><button class="mbtn" data-mm="g">G5</button>
+          </span></div>
+        <svg id="map" viewBox="0 0 980 600" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="zoomCtl">
+          <button class="zbtn" id="zIn" title="Zoom in">+</button>
+          <button class="zbtn" id="zOut" title="Zoom out">−</button>
+          <button class="zbtn" id="zReset" title="Reset view">⟲</button>
+        </div>
+        <div id="legend"></div>
+        <div id="tip"></div>
+      </div>
+      <div class="panel" id="standings">
+        <div class="ph">Conference Power Rankings <span class="right kbd">payout per school</span></div>
+        <div class="pb" style="padding-top:4px"><table id="standTable"></table></div>
+      </div>
+    </div>
+
+    <div id="right">
+      <div class="panel" style="flex:none">
+        <div class="ph">Commissioner Actions</div>
+        <div id="actionsBody"></div>
+      </div>
+      <div class="panel" id="newsPanel">
+        <div class="ph">The Wire <span class="right kbd" id="uiNewsCount"></span></div>
+        <div id="news"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="shade"><div id="modal"></div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   CONFERENCE WARS — data
+   ============================================================ */
+const CONF_META = {
+  b1g:{name:"Big Ten",  color:"var(--b1g)", hex:"#4f8ef7", diff:"easy", blurb:"Old money. Huge markets, huge brands, the network play is yours to invent."},
+  sec:{name:"SEC",      color:"var(--sec)", hex:"#f5b83d", diff:"easy", blurb:"It just means more. Best football, loyal members, war chest to raid anyone."},
+  b12:{name:"Big 12",   color:"var(--b12)", hex:"#f87171", diff:"med",  blurb:"Texas and Oklahoma pay the bills — and everyone knows it. Keep the giants happy."},
+  acc:{name:"ACC",      color:"var(--acc)", hex:"#a78bfa", diff:"med",  blurb:"Fresh off raiding the Big East. Basketball blood, football ambitions."},
+  pac:{name:"Pac-10",   color:"var(--pac)", hex:"#2dd4bf", diff:"hard", blurb:"The Conference of Champions — isolated, late-night kickoffs, one bad deal from ruin."},
+  be: {name:"Big East", color:"var(--be)",  hex:"#f472b6", diff:"hard", blurb:"Already bleeding from the ACC raid. Survive the decade. Good luck."},
+  swc:{name:"Southwest", hex:"#ff9f43", color:"#ff9f43", diff:"hard", blurb:"Nine schools, one state's ego, and a probation problem. Doomed by 1996 — unless you're better than history."},
+  b8: {name:"Big 8", hex:"#f87171", color:"#f87171", diff:"med", blurb:"Nebraska and Oklahoma run the plains. The Texas schools are ripe — swallow the SWC and become the Big 12."},
+  mwc:{name:"Mountain West", hex:"#fb923c", color:"#fb923c", diff:"ext", blurb:"Utah, BYU, TCU — real assets. Climb out of the basement before the big boys strip you for parts."},
+  cusa:{name:"Conference USA", hex:"#38bdf8", color:"#38bdf8", diff:"ext", blurb:"A bus-route league of future stars. Everyone good gets poached — unless you get big first."},
+  mac:{name:"MAC", hex:"#4ade80", color:"#4ade80", diff:"ext", blurb:"#MACtion. Tuesday nights, tiny checks, endless heart. Build an empire out of Toledo."},
+  wac:{name:"WAC", hex:"#e879f9", color:"#e879f9", diff:"ext", blurb:"Boise State and a prayer. In real life this league is dead by 2012. Change that."},
+  sbc:{name:"Sun Belt", hex:"#a3e635", color:"#a3e635", diff:"ext", blurb:"The bottom rung. Nobody rates you, nobody fears you. Perfect — nobody sees you coming."},
+  g5: {name:"Independents", color:"var(--g5)", hex:"#7b8fa8", diff:null, blurb:""}
+};
+/* [abbr, name, lat, lon, brand, market, conf, aau] */
+const SCHOOL_ROWS = [
+ ["ILL","Illinois",40.10,-88.23,62,74,"b1g",1],["IND","Indiana",39.17,-86.52,55,60,"b1g",1],
+ ["IOWA","Iowa",41.66,-91.55,68,52,"b1g",1],["MICH","Michigan",42.28,-83.74,93,80,"b1g",1],
+ ["MSU","Michigan State",42.70,-84.48,72,66,"b1g",1],["MINN","Minnesota",44.97,-93.23,58,70,"b1g",1],
+ ["NW","Northwestern",42.06,-87.68,52,88,"b1g",1],["OSU","Ohio State",40.00,-83.02,95,78,"b1g",1],
+ ["PSU","Penn State",40.80,-77.86,88,70,"b1g",1],["PUR","Purdue",40.43,-86.92,54,58,"b1g",1],
+ ["WIS","Wisconsin",43.08,-89.41,74,60,"b1g",1],
+ ["BAMA","Alabama",33.21,-87.55,86,52,"sec",0],["ARK","Arkansas",36.07,-94.17,66,46,"sec",0],
+ ["AUB","Auburn",32.60,-85.49,74,48,"sec",0],["FLA","Florida",29.65,-82.34,90,74,"sec",1],
+ ["UGA","Georgia",33.95,-83.37,86,72,"sec",0],["UK","Kentucky",38.03,-84.50,58,52,"sec",0],
+ ["LSU","LSU",30.41,-91.18,85,54,"sec",0],["MISS","Ole Miss",34.36,-89.54,58,38,"sec",0],
+ ["MSST","Mississippi State",33.45,-88.79,52,36,"sec",0],["SCAR","South Carolina",33.99,-81.03,64,56,"sec",0],
+ ["TENN","Tennessee",35.95,-83.93,84,58,"sec",0],["VAN","Vanderbilt",36.14,-86.80,45,62,"sec",1],
+ ["BAY","Baylor",31.55,-97.11,50,54,"b12",0],["COL","Colorado",40.01,-105.27,64,66,"b12",1],
+ ["ISU","Iowa State",42.03,-93.65,50,44,"b12",1],["KAN","Kansas",38.96,-95.25,55,48,"b12",1],
+ ["KSU","Kansas State",39.19,-96.58,56,42,"b12",0],["MIZ","Missouri",38.94,-92.33,63,64,"b12",1],
+ ["NEB","Nebraska",40.82,-96.70,84,42,"b12",1],["OU","Oklahoma",35.21,-97.44,90,50,"b12",0],
+ ["OKST","Oklahoma State",36.13,-97.07,58,46,"b12",0],["TEX","Texas",30.28,-97.73,96,86,"b12",1],
+ ["TAMU","Texas A&M",30.61,-96.34,78,72,"b12",1],["TTU","Texas Tech",33.58,-101.87,56,52,"b12",0],
+ ["ARIZ","Arizona",32.23,-110.95,60,64,"pac",1],["ASU","Arizona State",33.42,-111.93,62,70,"pac",1],
+ ["CAL","California",37.87,-122.26,60,82,"pac",1],["ORE","Oregon",44.04,-123.07,76,50,"pac",1],
+ ["ORST","Oregon State",44.56,-123.28,52,44,"pac",1],["STAN","Stanford",37.43,-122.17,62,82,"pac",1],
+ ["UCLA","UCLA",34.07,-118.44,74,95,"pac",1],["USC","USC",34.02,-118.29,94,95,"pac",1],
+ ["WASH","Washington",47.65,-122.30,76,72,"pac",1],["WSU","Washington State",46.73,-117.16,50,40,"pac",1],
+ ["BC","Boston College",42.34,-71.17,54,76,"acc",0],["CLEM","Clemson",34.68,-82.84,70,44,"acc",0],
+ ["DUKE","Duke",36.00,-78.94,50,60,"acc",1],["FSU","Florida State",30.44,-84.30,84,58,"acc",0],
+ ["GT","Georgia Tech",33.77,-84.40,60,74,"acc",1],["MD","Maryland",38.99,-76.94,56,78,"acc",1],
+ ["MIA","Miami",25.72,-80.28,83,80,"acc",1],["UNC","North Carolina",35.90,-79.05,66,62,"acc",1],
+ ["NCST","NC State",35.78,-78.68,58,60,"acc",0],["UVA","Virginia",38.03,-78.51,58,60,"acc",1],
+ ["VT","Virginia Tech",37.22,-80.42,72,52,"acc",0],["WAKE","Wake Forest",36.13,-80.28,46,48,"acc",0],
+ ["CIN","Cincinnati",39.13,-84.52,58,62,"be",0],["CONN","UConn",41.81,-72.25,48,66,"be",0],
+ ["LOU","Louisville",38.21,-85.76,62,54,"be",0],["PITT","Pittsburgh",40.44,-79.96,62,64,"be",1],
+ ["RUT","Rutgers",40.50,-74.45,50,92,"be",1],["USF","South Florida",28.06,-82.41,52,68,"be",0],
+ ["SYR","Syracuse",43.04,-76.14,56,60,"be",1],["WVU","West Virginia",39.65,-79.96,66,40,"be",0],
+ ["ND","Notre Dame",41.70,-86.24,92,72,"g5",0],["ARMY","Army",41.39,-73.96,55,58,"g5",0],
+ ["NAVY","Navy",38.98,-76.49,58,60,"g5",0],
+ ["UTAH","Utah",40.76,-111.85,62,58,"mwc",1],["TCU","TCU",32.71,-97.36,58,70,"mwc",0],
+ ["BYU","BYU",40.25,-111.65,62,56,"mwc",0],["SDSU","San Diego State",32.77,-117.07,50,66,"mwc",0],
+ ["CSU","Colorado State",40.57,-105.09,46,52,"mwc",0],["AF","Air Force",38.99,-104.86,50,48,"mwc",0],
+ ["UNLV","UNLV",36.11,-115.14,44,62,"mwc",0],["UNM","New Mexico",35.08,-106.62,42,50,"mwc",0],
+ ["WYO","Wyoming",41.31,-105.58,42,30,"mwc",0],
+ ["BSU","Boise State",43.60,-116.20,60,40,"wac",0],["FRES","Fresno State",36.81,-119.75,52,54,"wac",0],
+ ["NEV","Nevada",39.54,-119.81,44,46,"wac",0],["USU","Utah State",41.75,-111.81,42,38,"wac",1],
+ ["LT","Louisiana Tech",32.53,-92.65,42,34,"wac",0],["SJSU","San Jose State",37.34,-121.88,40,72,"wac",0],
+ ["IDHO","Idaho",46.73,-117.00,38,30,"wac",0],
+ ["HOU","Houston",29.72,-95.34,54,80,"cusa",1],["SMU","SMU",32.84,-96.78,48,76,"cusa",0],
+ ["UCF","UCF",28.60,-81.20,52,72,"cusa",0],["MEM","Memphis",35.12,-89.94,48,54,"cusa",0],
+ ["USM","Southern Miss",31.33,-89.33,47,36,"cusa",0],["MRSH","Marshall",38.42,-82.43,50,36,"cusa",0],
+ ["ECU","East Carolina",35.60,-77.37,48,44,"cusa",0],["TLSA","Tulsa",36.15,-95.95,44,44,"cusa",0],
+ ["TULN","Tulane",29.94,-90.12,42,58,"cusa",1],
+ ["MIOH","Miami (OH)",39.51,-84.73,48,44,"mac",0],["OHIO","Ohio",39.32,-82.10,45,38,"mac",0],
+ ["TOL","Toledo",41.66,-83.61,46,42,"mac",0],["NIU","Northern Illinois",41.93,-88.77,45,58,"mac",0],
+ ["CMU","Central Michigan",43.59,-84.77,42,38,"mac",0],["WMU","Western Michigan",42.28,-85.61,42,40,"mac",0],
+ ["BGSU","Bowling Green",41.38,-83.64,42,36,"mac",0],["BALL","Ball State",40.20,-85.41,38,36,"mac",0],
+ ["KENT","Kent State",41.15,-81.34,38,44,"mac",0],["BUFF","Buffalo",43.00,-78.79,40,52,"mac",1],
+ ["RICE","Rice",29.72,-95.40,38,78,"cusa",1],
+ ["TROY","Troy",31.80,-85.96,40,30,"sbc",0],["MTSU","Middle Tennessee",35.85,-86.37,40,44,"sbc",0],
+ ["NT","North Texas",33.21,-97.15,40,68,"sbc",0],["ARST","Arkansas State",35.84,-90.70,38,30,"sbc",0],
+ ["ULL","Louisiana",30.21,-92.02,40,32,"sbc",0],["FAU","Florida Atlantic",26.37,-80.10,42,72,"sbc",0],
+ ["FIU","FIU",25.76,-80.37,40,78,"sbc",0]
+];
+/* authentic school display colors (primary, or the official secondary when the
+   primary is too dark to read on a navy map — e.g. Michigan maize, Penn State white) */
+const SCHOOL_COLORS={
+ ILL:"#FF5F05",IND:"#990000",IOWA:"#FFCD00",MICH:"#FFCB05",MSU:"#18453B",MINN:"#7A0019",
+ NW:"#4E2A84",OSU:"#BB0000",PSU:"#FFFFFF",PUR:"#CEB888",WIS:"#C5050C",
+ BAMA:"#9E1B32",ARK:"#9D2235",AUB:"#E87722",FLA:"#FA4616",UGA:"#BA0C2F",UK:"#0033A0",
+ LSU:"#FDD023",MISS:"#CE1126",MSST:"#660000",SCAR:"#73000A",TENN:"#FF8200",VAN:"#A8996E",
+ BAY:"#FFB81C",COL:"#CFB87C",ISU:"#C8102E",KAN:"#0051BA",KSU:"#512888",MIZ:"#F1B82D",
+ NEB:"#E41C38",OU:"#841617",OKST:"#FF7300",TEX:"#BF5700",TAMU:"#500000",TTU:"#CC0000",
+ ARIZ:"#AB0520",ASU:"#8C1D40",CAL:"#FDB515",ORE:"#FEE123",ORST:"#DC4405",STAN:"#8C1515",
+ UCLA:"#2D68C4",USC:"#990000",WASH:"#4B2E83",WSU:"#981E32",
+ BC:"#98002E",CLEM:"#F56600",DUKE:"#003DA5",FSU:"#782F40",GT:"#B3A369",MD:"#E03A3E",
+ MIA:"#F47321",UNC:"#7BAFD4",NCST:"#CC0000",UVA:"#F84C1E",VT:"#861F41",WAKE:"#9E7E38",
+ CIN:"#E00122",CONN:"#A7B1C2",LOU:"#AD0000",PITT:"#FFB81C",RUT:"#CC0033",USF:"#006747",
+ SYR:"#D44500",WVU:"#EAAA00",
+ ND:"#C99700",UTAH:"#CC0000",TCU:"#4D1979",BYU:"#0062B8",BSU:"#0033A0",HOU:"#C8102E",
+ SMU:"#CC0035",UCF:"#FFC904",MEM:"#0046AD",SDSU:"#A6192E",
+ ARMY:"#D4BF91",NAVY:"#F0B323",
+ CSU:"#C8C372",AF:"#0033A0",UNLV:"#CF0A2C",UNM:"#BA0C2F",WYO:"#FFC425",
+ FRES:"#DB0032",NEV:"#8A8D8F",USU:"#9DB7DA",LT:"#005EB8",SJSU:"#0055A2",IDHO:"#F1B300",
+ USM:"#FFAB00",MRSH:"#00B140",ECU:"#592A8A",TLSA:"#C5B358",TULN:"#71C5E8",
+ MIOH:"#C41230",OHIO:"#00694E",TOL:"#FFD100",NIU:"#BA0C2F",CMU:"#6A0032",WMU:"#FFAE00",
+ BGSU:"#FE5000",BALL:"#DA0000",KENT:"#EAAB00",BUFF:"#005BBB",
+ TROY:"#8A2432",MTSU:"#0066CC",NT:"#00853E",ARST:"#CC092F",ULL:"#CE181E",FAU:"#BF2F38",FIU:"#B6862C",
+ RICE:"#8996A0"
+};
+/* FCS programs a G5 commissioner can promote: [abbr, name, lat, lon, brand, market, color] */
+const FCS_POOL=[
+ ["APP","Appalachian State",36.21,-81.68,46,34,"#FFCC00"],
+ ["NDSU","North Dakota State",46.89,-96.80,48,30,"#009A44"],
+ ["JMU","James Madison",38.44,-78.87,45,48,"#450084"],
+ ["GASO","Georgia Southern",32.42,-81.78,44,38,"#A28D5B"],
+ ["CCU","Coastal Carolina",33.79,-79.01,42,44,"#006F71"],
+ ["LIB","Liberty",37.35,-79.18,42,44,"#990000"],
+ ["MONT","Montana",46.86,-113.98,44,30,"#70002E"],
+ ["SHSU","Sam Houston",30.71,-95.55,40,40,"#F56423"],
+ ["JVST","Jacksonville State",33.82,-85.76,38,36,"#CC0000"],
+ ["DEL","Delaware",39.68,-75.75,40,50,"#00539F"],
+ ["SDST","South Dakota State",44.31,-96.79,47,30,"#4F9EDD"],
+ ["MTST","Montana State",45.67,-111.05,44,30,"#C5A253"],
+ ["EWU","Eastern Washington",47.49,-117.58,43,34,"#A10022"],
+ ["WEB","Weber State",41.19,-111.94,40,38,"#6A3FA0"],
+ ["NOVA","Villanova",39.99,-75.34,42,68,"#13B5EA"],
+ ["RICH","Richmond",37.57,-77.54,40,60,"#B01E33"],
+ ["UNH","New Hampshire",43.14,-70.94,39,48,"#1B5FAA"],
+ ["YSU","Youngstown State",41.10,-80.65,42,44,"#E03C31"],
+ ["JXST","Jackson State",32.30,-90.21,44,40,"#3757CE"],
+ ["GRAM","Grambling",32.52,-92.71,41,38,"#ECAA00"],
+ ["MCN","McNeese",30.18,-93.22,37,32,"#0E63B4"],
+ ["SFA","Stephen F. Austin",31.62,-94.65,37,40,"#6E3FA3"],
+ ["WM","William & Mary",37.27,-76.71,39,52,"#1E6E52"],
+ ["FUR","Furman",34.92,-82.44,38,40,"#5F54B8"],
+ ["TXST","Texas State",29.89,-97.94,44,62,"#A02040"]
+];
+/* rough US outline, [lat,lon] — projected at runtime */
+const OUTLINE=[[48.4,-124.7],[46.2,-124.0],[43.0,-124.4],[40.4,-124.4],[38.9,-123.7],[36.6,-121.9],[34.45,-120.45],[33.7,-118.3],[32.55,-117.1],[32.7,-114.7],[31.33,-111.07],[31.33,-108.2],[31.78,-108.2],[31.78,-106.5],[29.7,-104.5],[29.2,-103.1],[29.8,-101.4],[27.5,-99.5],[25.9,-97.15],[28.0,-96.8],[29.3,-94.8],[29.2,-90.1],[30.2,-88.0],[30.4,-86.5],[29.9,-84.3],[28.0,-82.8],[26.7,-82.2],[25.2,-81.1],[25.1,-80.4],[26.7,-80.0],[28.5,-80.6],[30.7,-81.4],[32.0,-80.8],[33.9,-77.9],[35.2,-75.5],[36.9,-76.0],[38.0,-75.0],[39.3,-74.3],[40.5,-74.0],[41.1,-71.9],[41.6,-70.0],[42.05,-70.2],[43.1,-70.6],[44.8,-66.95],[47.3,-68.3],[45.3,-71.3],[45.0,-74.6],[44.1,-76.5],[43.3,-79.0],[42.9,-78.9],[42.3,-80.0],[41.7,-82.4],[42.1,-83.1],[43.6,-82.5],[45.8,-84.7],[46.5,-84.5],[48.0,-89.5],[48.0,-95.2],[49.0,-95.15],[49.0,-124.7]];
+
+/* ============================================================
+   ENGINE
+   ============================================================ */
+const START_YEAR=2005, END_YEAR=2035, P5=["b1g","sec","b12","acc","pac","be","swc","b8"];
+const G5C=["mwc","cusa","mac","wac","sbc"], ALLC=P5.concat(G5C), PLAYABLE=ALLC;
+/* ---------- eras ---------- */
+const ERAS={
+ 1989:{label:"1989 · THE OLD WORLD",sub:"The SWC lives, the Big East hasn't kicked off, and half the sport is independent. Everything is about to change.",
+  dead:["b12","be","mwc","cusa","sbc"],
+  conf:{PSU:"g5",MIA:"g5",FSU:"g5",SCAR:"g5",WVU:"g5",PITT:"g5",SYR:"g5",BC:"g5",RUT:"g5",VT:"g5",
+   CIN:"g5",LOU:"g5",CONN:"g5",USF:"g5",UCF:"g5",MEM:"g5",USM:"g5",TULN:"g5",ECU:"g5",TLSA:"g5",
+   ARK:"swc",TEX:"swc",TAMU:"swc",TTU:"swc",BAY:"swc",TCU:"swc",SMU:"swc",HOU:"swc",RICE:"swc",
+   NEB:"b8",OU:"b8",OKST:"b8",COL:"b8",KAN:"b8",KSU:"b8",ISU:"b8",MIZ:"b8",
+   UTAH:"wac",BYU:"wac",WYO:"wac",UNM:"wac",CSU:"wac",AF:"wac",SDSU:"wac",UNLV:"wac",
+   TROY:"g5",MTSU:"g5",NT:"g5",ARST:"g5",ULL:"g5",FAU:"g5",FIU:"g5"}},
+ 1999:{label:"1999 · THE BCS DAWN",sub:"The Big 12 is three years old, the Mountain West just walked out of the WAC, and the Big East is about to get famous — then robbed.",
+  dead:["swc","b8","sbc"],
+  conf:{TCU:"wac",SMU:"wac",RICE:"wac",UNLV:"mwc",
+   MIA:"be",VT:"be",BC:"be",PITT:"be",SYR:"be",WVU:"be",RUT:"be",
+   CIN:"cusa",LOU:"cusa",CONN:"g5",USF:"g5",UCF:"g5",
+   TROY:"g5",MTSU:"g5",NT:"g5",ARST:"g5",ULL:"g5",FAU:"g5",FIU:"g5"}},
+ 2005:{label:"2005 · THE POWDER KEG",sub:"The map you grew up with — eleven leagues, old money, and a decade of betrayal loading in the background.",
+  dead:["swc","b8"],conf:{}},
+ 2026:{label:"2026 · THE AFTERMATH",sub:"Right now. Eighteen-team giants, a rebuilt Pac-12, and the Super League question four years out. No script — write the next thirty years yourself.",
+  dead:["swc","b8","wac"],
+  flavor:{be:{name:"American",blurb:"The Big East's ashes, rebuilt around Memphis, USF, and the academies. Prove the G5 ceiling is a lie."},
+    pac:{name:"Pac-12",blurb:"Two survivors and six believers rebuilt the brand. The banners say 1915; the roster says 2026. Make it real again."},
+    b1g:{name:"Big Ten",blurb:"Eighteen schools, four time zones, a fortune in TV money — and a volleyball team with jet lag."},
+    sec:{name:"SEC",blurb:"Sixteen deep with Texas and Oklahoma aboard. The throne is yours to lose."}},
+  conf:{NEB:"b1g",MD:"b1g",RUT:"b1g",UCLA:"b1g",USC:"b1g",WASH:"b1g",ORE:"b1g",
+   TEX:"sec",OU:"sec",TAMU:"sec",MIZ:"sec",
+   COL:"b12",ARIZ:"b12",ASU:"b12",UTAH:"b12",TCU:"b12",BYU:"b12",CIN:"b12",HOU:"b12",UCF:"b12",WVU:"b12",
+   PITT:"acc",SYR:"acc",LOU:"acc",CAL:"acc",STAN:"acc",SMU:"acc",
+   ORST:"pac",WSU:"pac",BSU:"pac",CSU:"pac",FRES:"pac",SDSU:"pac",USU:"pac",
+   NEV:"mwc",UNM:"mwc",SJSU:"mwc",UNLV:"mwc",WYO:"mwc",AF:"mwc",NIU:"mwc",
+   MEM:"be",USF:"be",ECU:"be",TULN:"be",TLSA:"be",NAVY:"be",ARMY:"be",NT:"be",RICE:"be",FAU:"be",
+   LT:"cusa",FIU:"cusa",MTSU:"cusa",
+   USM:"sbc",MRSH:"sbc",TROY:"sbc",ARST:"sbc",ULL:"sbc",
+   CONN:"g5",IDHO:"g5"},
+  brands:{OSU:96,MICH:92,UGA:93,BAMA:92,TEX:95,ORE:88,PSU:90,LSU:88,TENN:87,USC:89,OU:86,NEB:70,MIA:83,FSU:80,CLEM:80,WASH:79,SMU:62,CIN:58,BSU:66,TCU:66,ARIZ:57,IND:66,VAN:55,COL:70,SYR:58,CAL:56,STAN:56},
+  promote:{APP:"sbc",GASO:"sbc",CCU:"sbc",JMU:"sbc",LIB:"cusa",JVST:"cusa",SHSU:"cusa",DEL:"cusa",TXST:"pac"}}
+};
+/* conferences that come into existence on schedule */
+const FORMATIONS=[
+ {yr:1991,conf:"be",t:["MIA","BC","PITT","SYR","WVU","RUT","VT"],from:"g5",msg:"🏈 <b>The Big East begins sponsoring football.</b> The Northeast finally has a home — and Miami gives it teeth."},
+ {yr:1996,conf:"cusa",t:["MEM","USM","TULN","ECU","LOU","CIN","HOU","TLSA"],from:"g5",msg:"🏈 <b>Conference USA forms</b> from the wandering independents of the South."},
+ {yr:1999,conf:"mwc",t:["BYU","UTAH","WYO","UNM","CSU","AF","SDSU","UNLV"],from:"wac",msg:"⛰ <b>Eight schools walk out of the WAC</b> overnight to form the Mountain West. The great schism."},
+ {yr:2001,conf:"sbc",t:["NT","ARST","ULL","MTSU","TROY","FAU","FIU"],from:"g5",msg:"🌞 <b>The Sun Belt begins sponsoring football.</b> Somebody has to."}
+];
+const isG5=id=>G5C.includes(id)||id==="g5";
+const TIER_MULT={g5:0.30,mwc:0.16,cusa:0.13,mac:0.11,wac:0.10,sbc:0.08};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let rng=Math.random;
+const $=id=>document.getElementById(id);
+const fmtM=v=>"$"+(v>=1000?(v/1000).toFixed(1)+"B":v>=10?Math.round(v)+"M":Math.max(0,v).toFixed(1)+"M");
+const proj=(lat,lon)=>[ (lon+126)*(940/60)+15, (50-lat)*(560/26)+10 ];
+
+let S=null; // game state
+
+function newState(playerConf,era){
+  era=era||2005;
+  const eraDef=ERAS[era];
+  const schools = SCHOOL_ROWS.map((r,i)=>{
+    const cf=eraDef.conf[r[0]]!==undefined?eraDef.conf[r[0]]:r[6];
+    const br=(eraDef.brands&&eraDef.brands[r[0]]!==undefined)?eraDef.brands[r[0]]:r[4];
+    return {
+    id:i, abbr:r[0], name:r[1], lat:r[2], lon:r[3], brand:br, market:r[5],
+    conf:cf, orig:cf, aau:r[7]===1, mood:52+rng()*16,
+    ind:r[0]==="ND", lastCourt:-99, color:SCHOOL_COLORS[r[0]]||"#7b8fa8"
+  };});
+  const confs={};
+  for(const id in CONF_META){
+    confs[id]={id, ...CONF_META[id], tv:{rate:0,expires:0,len:0}, exitFee:id==="g5"?0:10,
+      network:false, pen:[], dead:eraDef.dead.includes(id), payout:0, hist:[], desperation:0, slWin:false, fought:0, lost:0, wounded:0, chest:0};
+  }
+  if(eraDef.flavor)for(const id in eraDef.flavor)if(confs[id]&&eraDef.flavor[id].name)confs[id].name=eraDef.flavor[id].name;
+  const st={year:era, startYear:era, endYear:era+30, player:playerConf, ap:2, schools, confs, news:[], log:[],
+    queue:[], ranks:[], over:false, aiBlock:0, slStarted:false, brandStart:0, titles:0, evtCd:{},
+    champs:{}, ledger:[], daily:null, startRank:1, expels:0, slLost:0, slFormed:false, g5Natty:false,
+    fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false};
+  // opening TV deals (older conferences locked into older money)
+  if(era===2005){
+    const opening={b1g:[1.00,2007],sec:[1.05,2009],b12:[0.95,2011],acc:[0.90,2010],pac:[0.80,2011],be:[0.70,2008],
+      mwc:[0.75,2010],cusa:[0.70,2009],mac:[0.70,2011],wac:[0.65,2008],sbc:[0.60,2010],g5:[0.80,2009]};
+    for(const id in opening){
+      const c=confs[id];if(c.dead)continue;
+      c.tv.rate=mediaValue(st,id)*opening[id][0];
+      c.tv.expires=opening[id][1]; c.tv.len=c.tv.expires-2002;
+    }
+  } else {
+    const mults={b1g:1.0,sec:1.0,swc:0.9,b8:0.95,acc:0.9,pac:0.85,be:0.8,b12:0.95,mwc:0.75,cusa:0.7,mac:0.7,wac:0.65,sbc:0.6,g5:0.8};
+    let i=0;
+    for(const id in confs){
+      const c=confs[id];if(c.dead)continue;
+      c.tv.rate=mediaValue(st,id)*(mults[id]||0.8);
+      c.tv.expires=era+2+(i%5); c.tv.len=5; i++;
+    }
+  }
+  // schools that came up from the FCS before this era began
+  if(eraDef.promote)for(const ab in eraDef.promote){
+    const row=FCS_POOL.find(r=>r[0]===ab);if(!row)continue;
+    st.schools.push({id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],
+      brand:(eraDef.brands&&eraDef.brands[ab])||row[4]+4,market:row[5],
+      conf:eraDef.promote[ab],orig:eraDef.promote[ab],aau:false,mood:52+rng()*16,ind:false,lastCourt:-99,color:row[6]});
+    st.fcsUsed.push(ab);
+  }
+  st.brandStart=confBrand(st,playerConf);
+  st.startRank=ALLC.filter(id=>!confs[id].dead).sort((a,b)=>payoutOf(st,b)-payoutOf(st,a)).indexOf(playerConf)+1;
+  return st;
+}
+
+const members=(st,cid)=>st.schools.filter(s=>s.conf===cid);
+const confBrand=(st,cid)=>members(st,cid).reduce((a,s)=>a+s.brand,0);
+const prestige=(st,cid)=>{const m=members(st,cid);return m.length?confBrand(st,cid)/m.length:0};
+function centroid(st,cid){
+  const m=members(st,cid); if(!m.length) return [39,-95];
+  return [m.reduce((a,s)=>a+s.lat,0)/m.length, m.reduce((a,s)=>a+s.lon,0)/m.length];
+}
+const distMi=(s,ct)=>Math.sqrt(Math.pow((s.lat-ct[0])*69,2)+Math.pow((s.lon-ct[1])*53,2));
+
+function eraMult(year){
+  let m=0.132*Math.pow(1.08, year-START_YEAR);
+  if(year>=2012)m*=1.12; if(year>=2014)m*=1.18; if(year>=2024)m*=1.22;
+  return m;
+}
+function footprintOf(list){
+  if(list.length<2)return 0;
+  const la=list.reduce((a,s)=>a+s.lat,0)/list.length, lo=list.reduce((a,s)=>a+s.lon,0)/list.length;
+  return list.reduce((a,s)=>a+distMi(s,[la,lo]),0)/list.length;
+}
+function footprintInfo(sp){
+  return sp<350?{label:"REGIONAL",mult:1.06,col:"var(--green)",note:"bus rides & blood rivalries: +6% media"}
+    :sp<600?{label:"NATIONAL",mult:1.00,col:"var(--teal)",note:"a sane map: no modifier"}
+    :sp<900?{label:"SPRAWLING",mult:0.97,col:"var(--gold)",note:"charter flights add up: −3% media"}
+    :{label:"COAST-TO-COAST",mult:0.94,col:"var(--red)",note:"volleyball in 3 time zones: −6% media"};
+}
+function mediaValue(st,cid,plus,minus){
+  let list=members(st,cid);
+  if(plus)list=list.concat([plus]);
+  if(minus)list=list.filter(s=>s!==minus);
+  let v=list.reduce((a,s)=>a+(s.brand*0.6+s.market*0.4),0)*eraMult(st.year);
+  v*=footprintInfo(footprintOf(list)).mult;      // regional alignment counts
+  return v*(TIER_MULT[cid]||1);
+}
+function effRate(st,cid){
+  const c=st.confs[cid]; let r=c.tv.rate;
+  if(c.network){const m=members(st,cid);const am=m.length?m.reduce((a,s)=>a+s.market,0)/m.length:0;r*=(1+am/220);}
+  for(const p of c.pen) if(st.year<=p.until) r*=(1-p.pct);
+  if(st.year===2020) r*=0.8;
+  if(c.slWin) r*=1.3;
+  if(c.ccg) r*=1.04;
+  if(cid===st.player&&c.concordat) r*=1.18;
+  return r;
+}
+function payoutOf(st,cid){
+  const n=members(st,cid).length;
+  return n?effRate(st,cid)/n:0;
+}
+/* Forbes-style valuations — the same fundamentals that drive media deals, priced as franchises */
+function programValue(st,s){
+  const base=s.brand*0.6+s.market*0.4;
+  const alive=ALLC.filter(id=>!st.confs[id].dead);
+  const top=Math.max(...alive.map(id=>payoutOf(st,id)),1);
+  const rich=s.conf==="sl"?1.2:Math.min(1.2,payoutOf(st,s.conf)/top);
+  return base*eraMult(st.year)*22*(0.75+0.5*rich)*(1+(st.champs[s.abbr]||0)*0.03);
+}
+function confValue(st,cid){
+  return members(st,cid).reduce((a,s)=>a+programValue(st,s),0)*(st.confs[cid].network?1.08:1);
+}
+// forward-looking payout a school would see if it joined cid (fresh-market rate)
+function futurePayout(st,cid,school){
+  const n=members(st,cid).length+1;
+  const c=st.confs[cid];
+  let v=mediaValue(st,cid,school)/n;
+  if(c.network)v*=1.18;
+  const cur=payoutOf(st,cid);
+  return Math.max(v, cur*(n-1)/n); // adding a brand rarely lowers per-school money below near-current
+}
+
+/* ---------- accept model ---------- */
+function acceptChance(st,school,toId,opt){
+  opt=opt||{};
+  const from=school.conf, to=st.confs[toId];
+  const futTo=futurePayout(st,toId,school);
+  const futFrom=Math.max(2,payoutOf(st,from));
+  const delta=(futTo-futFrom)/futFrom;
+  const ct=centroid(st,toId);
+  const d=distMi(school,ct);
+  // the smaller the league, the more the fit has to be right; mega-league money erases maps
+  const toN=members(st,toId).length;
+  const fitW=toN<=8?1.6:toN<=11?1.25:toN<=13?1:0.65;
+  const distPen=Math.max(0,(d-700)/28)*fitW;
+  const exitDeter=(st.confs[from]?st.confs[from].exitFee:0)/Math.max(6,futFrom)*2.2;
+  let p=18 + delta*90 + (55-school.mood)*0.9 + (prestige(st,toId)-prestige(st,from))*0.45 - distPen - exitDeter;
+  if(school.aau && toId==="b1g")p+=7;
+  if(school.aau && (toId==="pac"||toId==="acc"))p+=3;
+  if(school.ind)p-=35;
+  if(isG5(from)&&!isG5(toId))p+=22;          // everyone wants the call-up
+  if(isG5(from)&&isG5(toId))p+=8;            // lateral G5 moves are easier too
+  if(school.grudge===toId)p-=40;             // you expelled them once. they remember.
+  if(school.gorUntil&&school.gorUntil>st.year)p-=28;   // grant of rights is a fortress
+  if(st.confs[from]&&st.confs[from].wounded>st.year)p+=15;   // nobody wants to be last off a sinking ship
+  if(opt.sweeten)p+=15;
+  if(opt.scripted)p+=12;
+  if(opt.counter)p-=30;
+  return {p:Math.max(3,Math.min(95,p)), delta, distPen, exitDeter, futTo, futFrom, fitW, toN};
+}
+
+function moveSchool(st,school,toId,why){
+  if(st.confs[toId]&&st.confs[toId].dead&&toId!=="g5")return;   // never join a ghost league
+  const fromId=school.conf, from=st.confs[fromId];
+  st.ledger.push({yr:st.year,ab:school.abbr,school:school.name,from:from?from.name:"Independent",to:st.confs[toId].name,toId});
+  if(toId==="sl"&&fromId===st.player)st.slLost++;
+  if(from&&fromId!=="g5")from.lost=(from.lost||0)+1;
+  st.moves.push({ab:school.abbr,toId});
+  // the jilted league collects the buyout — and keeps GOR'd rights money
+  let feeNote="";
+  if(from&&fromId!=="g5"&&fromId!=="sl"&&!from.dead){
+    let take=from.exitFee||0;
+    if(school.gorUntil&&school.gorUntil>st.year)take+=payoutOf(st,fromId)*Math.min(3,school.gorUntil-st.year);
+    if(take>0){from.chest=(from.chest||0)+take;feeNote=` <span style="color:var(--dim)">(${fmtM(take)} buyout banked by the ${from.name})</span>`;}
+  }
+  school.conf=toId; school.mood=72; school.lastCourt=st.year;
+  if(fromId!=="g5"){
+    for(const m of members(st,fromId)) m.mood-=6;
+  }
+  const toName=st.confs[toId].name, fromName=from?from.name:"independence";
+  const w=why?" — "+why:"";
+  const line=fromId==="g5"?tmpl([
+      `${school.name} accepts an invitation to the <b>${toName}</b>${w}.`,
+      `It's official: <b>${school.name}</b> is ${toName}-bound. The introductory presser is all smiles and new hats.`,
+      `${school.name} gets the call it's waited years for: welcome to the <b>${toName}</b>.`])
+    :school.brand>=84?tmpl([
+      `🚨 BREAKING (${insider()}): <b>${school.name}</b> is leaving the ${fromName} for the <b>${toName}</b>. Cataclysm.`,
+      `The ${fromName} wakes up to find <b>${school.name}</b> gone. ${toName} money talks${w}.`,
+      `<b>${school.name}</b> → <b>${toName}</b>. Somewhere, a ${fromName} lawyer opens the exit-fee file.`,
+      `First on ${insider()}'s feed: <b>${school.name}</b> bolts for the <b>${toName}</b>. Group chats detonate nationwide.`])
+    :tmpl([
+      `${school.name} leaves the ${fromName} for the <b>${toName}</b>${w}.`,
+      `${school.name} takes the ${toName}'s call — and the ${toName}'s check.`,
+      `Quietly, then all at once: <b>${school.name}</b> joins the ${toName}.`,
+      `The ${fromName} loses ${school.name} to the <b>${toName}</b>. "We wish them well," says a statement that wishes them nothing.`]);
+  news(st,line+feeNote, toId===st.player?"good":"poach");
+  log(st,`${school.abbr} → ${toName}`);
+  if(fromId!=="g5") checkCollapse(st,fromId);
+}
+
+function checkCollapse(st,cid){
+  if(cid==="g5"||cid==="sl")return;
+  const c=st.confs[cid], m=members(st,cid);
+  if(c.dead)return;
+  if(m.length<6){
+    c.dead=true;c.diedYr=st.year;
+    for(const s of m){s.conf="g5"; s.mood=32;}
+    news(st,`☠ <b>The ${c.name} has dissolved.</b> ${m.length} schools scatter to the wind.`,"poach");
+    log(st,`The ${c.name} dissolves`);
+    if(cid===st.player){st.over="dead";}
+  } else if(m.length<8){ c.desperation=1; }
+}
+
+/* ---------- AI ---------- */
+const SCRIPTS=[
+  // --- the 90s (1989 starts) ---
+  {yr:1990,conf:"b1g",t:["PSU"]},        {yr:1990,conf:"sec",t:["ARK"]},
+  {yr:1991,conf:"sec",t:["SCAR"]},       {yr:1991,conf:"acc",t:["FSU"]},
+  {yr:1996,conf:"wac",t:["TCU","SMU","RICE"]},
+  // --- the 2000s (1999 starts) ---
+  {yr:2003,conf:"acc",t:["MIA","VT"]},   {yr:2004,conf:"acc",t:["BC"]},
+  {yr:2005,conf:"be",t:["CIN","LOU","USF","CONN"]},
+  // --- the realignment era ---
+  {yr:2010,conf:"b1g",t:["NEB"]},        {yr:2010,conf:"pac",t:["COL","UTAH"]},
+  {yr:2011,conf:"sec",t:["TAMU"]},       {yr:2011,conf:"b12",t:["WVU","TCU"]},
+  {yr:2012,conf:"sec",t:["MIZ"]},        {yr:2012,conf:"b1g",t:["MD","RUT"]},
+  {yr:2012,conf:"acc",t:["SYR","PITT"]}, {yr:2013,conf:"acc",t:["LOU"]},
+  {yr:2021,conf:"sec",t:["TEX","OU"]},   {yr:2022,conf:"b1g",t:["USC","UCLA"]},
+  {yr:2023,conf:"b1g",t:["WASH","ORE"]}, {yr:2023,conf:"b12",t:["ARIZ","ASU","UTAH","COL"]},
+  {yr:2024,conf:"acc",t:["STAN","CAL","SMU"]},
+  {yr:2011,conf:"mwc",t:["BSU","FRES","NEV"]}, {yr:2013,conf:"cusa",t:["MTSU","FAU","FIU","NT"]},
+  {yr:2013,conf:"mwc",t:["USU","SJSU"]}
+];
+const byAbbr=(st,ab)=>st.schools.find(s=>s.abbr===ab);
+
+function runFormations(st){
+  for(const f of FORMATIONS){
+    if(f.yr!==st.year)continue;
+    const c=st.confs[f.conf];
+    if(!c||!c.dead)continue;
+    const movers=f.t.map(ab=>byAbbr(st,ab)).filter(s=>s&&(s.conf===f.from||s.conf==="g5"));
+    if(movers.length<6){                          // a league needs six to live
+      news(st,`🪦 The planned ${c.name} launch collapses — too many founding schools already spoken for. History bends.`,"event");
+      continue;
+    }
+    c.dead=false;c.desperation=0;
+    for(const s of movers){
+      st.ledger.push({yr:st.year,ab:s.abbr,school:s.name,from:st.confs[s.conf]?st.confs[s.conf].name:"Independent",to:c.name,toId:f.conf});
+      s.conf=f.conf;s.mood=70;
+    }
+    c.tv.rate=mediaValue(st,f.conf)*0.7;c.tv.expires=st.year+4;c.tv.len=4;
+    news(st,f.msg,"event");
+    log(st,`${c.name} forms (${movers.length} schools)`);
+    if(f.from==="wac")checkCollapse(st,"wac");
+  }
+}
+function runMerger(st){
+  if(st.year!==1996)return;
+  const b8=st.confs.b8;
+  if(!b8||b8.dead)return;
+  const texans=["TEX","TAMU","TTU","BAY"].map(ab=>byAbbr(st,ab)).filter(s=>s&&s.conf==="swc");
+  // the Big 8 becomes the Big 12
+  const b12=st.confs.b12;
+  b12.dead=false;b12.tv={...b8.tv};b12.exitFee=b8.exitFee;b12.network=b8.network;b12.pen=b8.pen;b12.ccg=b8.ccg;b12.gorLabel=b8.gorLabel;
+  for(const s of members(st,"b8"))s.conf="b12";
+  b8.dead=true;b8.diedYr=st.year;
+  const wasPlayer=st.player==="b8";
+  if(wasPlayer)st.player="b12";
+  if(st.player==="swc"&&texans.length){
+    news(st,`🤝 <b>The Big 8 rebrands as the BIG 12</b> and formally invites your Texas schools to complete the merger. History says they go.`,"poach");
+    for(const s of texans)st.queue.push({type:"secRaid",school:s,toId:"b12"});   // reuse the emergency-counter modal
+  } else {
+    for(const s of texans){
+      const a=acceptChance(st,s,"b12",{scripted:true});
+      if(rng()*100<a.p+20)moveSchool(st,s,"b12","the merger of the decade");
+    }
+    news(st,`🤝 <b>The Big 8 and the Texas schools merge into the BIG 12.</b> The Southwest Conference is left to bleed out.`,wasPlayer?"good":"event");
+  }
+  log(st,`The Big 8 becomes the Big 12`);
+  if(wasPlayer)news(st,`👔 Your league office changes the letterhead: you are now commissioner of the <b>Big 12</b>.`,"good");
+}
+function runScripts(st){
+  for(const sc of SCRIPTS){
+    if(sc.yr!==st.year)continue;
+    const conf=st.confs[sc.conf];
+    if(conf.dead)continue;
+    if(sc.conf===st.player)continue;              // player drives their own board
+    if(st.aiBlock>0)continue;
+    for(const ab of sc.t){
+      if(st.confs[sc.conf].dead)break;
+      const s=byAbbr(st,ab);
+      if(!s||s.conf===sc.conf||s.conf==="sl")continue;
+      if(s.conf===st.player && st.year===2021 && sc.conf==="sec"){ queueSecRaid(st,s,sc.conf); continue; }
+      const a=acceptChance(st,s,sc.conf,{scripted:true});
+      if(rng()*100<a.p) moveSchool(st,s,sc.conf,"a move years in the making");
+      else news(st,`${s.name} turns down overtures from the ${conf.name}.`,"event");
+    }
+  }
+  // rumors one year ahead
+  for(const sc of SCRIPTS){
+    if(sc.yr!==st.year+1||st.confs[sc.conf].dead||sc.conf===st.player)continue;
+    const names=sc.t.map(ab=>{const s=byAbbr(st,ab);return s&&s.conf!==sc.conf&&s.conf!=="sl"?s.name:null}).filter(Boolean);
+    if(names.length){
+      const cn=st.confs[sc.conf].name;
+      news(st,tmpl([
+        `🛰 Rumor mill: the ${cn} is quietly studying <b>${names.join(", ")}</b>.`,
+        `🛰 ${insider()}: the ${cn} and <b>${names.join(", ")}</b> have had "exploratory conversations." Nobody explores for fun.`,
+        `🛰 Regents connected to the ${cn} just commissioned a "landscape study" naming <b>${names.join(", ")}</b>. Draw your own conclusions.`,
+        `🛰 ${senName()} tells a radio host the ${cn} "would be lucky" to land <b>${names[0]}</b>. The league office declines comment, loudly.`]),"event");
+    }
+  }
+}
+
+function aiTurns(st){
+  if(st.aiBlock>0){st.aiBlock--;return;}
+  const wave=(st.year>=2010&&st.year<=2013)||(st.year>=2021&&st.year<=2024);
+  const alive=ALLC.filter(id=>!st.confs[id].dead&&id!==st.player)
+    .sort((a,b)=>payoutOf(st,b)-payoutOf(st,a));
+  for(const cid of alive){
+    const c=st.confs[cid];
+    if(c.dead)continue;                       // may have collapsed earlier this same offseason
+    let chance=0.28+(wave?0.27:0)+(c.desperation?0.35:0)+(c.wounded>st.year?0.3:0);
+    const n=members(st,cid).length;
+    if(n>=16)chance*=0.35;                    // mega-leagues slow down
+    if(rng()>chance)continue;
+    const myPay=payoutOf(st,cid), ct=centroid(st,cid);
+    const targets=st.schools.filter(s=>{
+      if(s.conf===cid||s.conf==="sl")return false;
+      if(st.year-s.lastCourt<2)return false;
+      const srcWounded=st.confs[s.conf]&&st.confs[s.conf].wounded>st.year;
+      if(!isG5(s.conf)){
+        if(n>=18)return false;                               // 18+: only raid downward
+        const theirPay=payoutOf(st,s.conf);
+        if(!srcWounded && myPay<theirPay*0.95 && s.mood>45)return false;   // don't punch up at happy schools (unless they're bleeding)
+      }else if(isG5(cid)&&s.conf!=="g5"&&!srcWounded&&payoutOf(st,cid)<payoutOf(st,s.conf)*0.9&&s.mood>40)return false;
+      return true;
+    }).map(s=>{
+      const wnd=st.confs[s.conf]&&st.confs[s.conf].wounded>st.year;
+      const fitW=n<=8?1.5:n<=11?1.2:n>=14?0.7:1;   // small leagues scout their region
+      return {s,score:s.brand*0.6+s.market*0.4-Math.max(0,(distMi(s,ct)-700)/28)*1.5*fitW+(55-s.mood)*0.6+(s.aau&&cid==="b1g"?6:0)+(wnd?9:0)};
+    }).sort((a,b)=>b.score-a.score).slice(0,10);
+    for(const t of targets){
+      const a=acceptChance(st,t.s,cid,{scripted:c.desperation&&isG5(t.s.conf)});
+      if(a.p<28)continue;
+      t.s.lastCourt=st.year;
+      const srcId=t.s.conf;
+      if(t.s.conf===st.player)news(st,`⚠ The ${c.name} makes a run at <b>${t.s.name}</b>…`,"poach");
+      if(rng()*100<a.p){
+        moveSchool(st,t.s,cid);
+        // package deals: travel partners follow, and blood brings sharks
+        let anchor=t.s, grabs=1;
+        while(grabs<3&&srcId!=="g5"&&!st.confs[cid].dead){
+          if(rng()>(grabs===1?0.5:0.28))break;
+          const src=members(st,srcId).filter(x=>st.year-x.lastCourt>=1||x.mood<45);
+          if(!src.length)break;
+          const near=[...src].sort((x,y)=>distMi(x,[anchor.lat,anchor.lon])-distMi(y,[anchor.lat,anchor.lon]))[0];
+          const a2=acceptChance(st,near,cid,{scripted:true});
+          near.lastCourt=st.year;
+          if(rng()*100<a2.p+6){moveSchool(st,near,cid,"they travel together");anchor=near;grabs++;}
+          else break;
+        }
+      }
+      else if(t.s.conf===st.player) news(st,`${t.s.name} stays loyal — for now.`,"good");
+      break; // one raid (possibly a package) per conf per year
+    }
+  }
+}
+function woundCheck(st){
+  for(const id of ALLC){
+    const c=st.confs[id];
+    if(c.dead||c.wounded>st.year)continue;
+    if((c.lost||0)>=2&&members(st,id).length>=6){
+      c.wounded=st.year+2;
+      for(const m of members(st,id))m.mood-=8;
+      news(st,`🩸 <b>The ${c.name} is bleeding</b> — ${c.lost} schools gone in one offseason. Every agent in the sport is calling their members.`,"poach");
+      if(id===st.player){
+        c.rebuildUntil=st.year+1;
+        st.lastFcs=Math.min(st.lastFcs,st.year-1);
+        news(st,`🛠 <b>Emergency expansion powers:</b> the board frees the war chest — 4 actions next offseason. Rebuild.`,"good");
+      }
+    }
+  }
+}
+
+/* ---------- season economics ---------- */
+function seasonEcon(st){
+  for(const cid of Object.keys(st.confs)){
+    const c=st.confs[cid];
+    if(c.dead)continue;
+    // auto renegotiate AI + g5 deals at expiry
+    if(st.year>=c.tv.expires){
+      if(cid===st.player)continue; // player handled via modal before advance
+      c.tv.rate=mediaValue(st,cid); c.tv.len=6; c.tv.expires=st.year+6;
+      // a disaster deal starts a death spiral
+      const tier=isG5(cid)?G5C:P5;
+      const peers=tier.filter(x=>x!==cid&&!st.confs[x].dead).map(x=>payoutOf(st,x));
+      const avg=peers.length?peers.reduce((a,b)=>a+b,0)/peers.length:0;
+      const myNew=members(st,cid).length?c.tv.rate/members(st,cid).length:0;
+      if(avg&&myNew<avg*0.55&&members(st,cid).length>=6&&ALLC.includes(cid)){
+        c.wounded=Math.max(c.wounded,st.year+2);
+        for(const m of members(st,cid))m.mood-=10;
+        news(st,`🚑 <b>The ${c.name}'s new TV deal lands with a thud</b> — ${fmtM(myNew)}/school in a ${fmtM(avg)} world. The exits are being eyed.`,"poach");
+      } else if(P5.includes(cid))news(st,`💰 The ${c.name} signs a new media deal worth ${fmtM(c.tv.rate)}/yr.`,"money");
+    }
+    c.payout=payoutOf(st,cid);
+    c.hist.push({yr:st.year,pay:c.payout});
+  }
+  // AI network launches
+  if(st.year===2007&&st.player!=="b1g"&&!st.confs.b1g.dead&&!st.confs.b1g.network){
+    st.confs.b1g.network=true;
+    news(st,`📺 <b>The Big Ten Network launches.</b> League payouts jump overnight.`,"money");
+  }
+  if(st.year===2014&&st.player!=="sec"&&!st.confs.sec.dead&&!st.confs.sec.network){
+    st.confs.sec.network=true;
+    news(st,`📺 <b>The SEC Network launches</b> with ESPN. Cha-ching.`,"money");
+  }
+}
+
+function seasonMoods(st){
+  const avgOf=ids=>{const v=ids.filter(id=>!st.confs[id].dead).map(id=>payoutOf(st,id));return v.length?v.reduce((a,b)=>a+b,0)/v.length:5;};
+  const p5Avg=avgOf(P5), g5Avg=avgOf(G5C);
+  const cts={};
+  for(const id of ALLC.concat(["g5"]))if(!st.confs[id].dead)cts[id]=centroid(st,id);
+  for(const s of st.schools){
+    if(s.conf==="sl")continue;
+    const pay=payoutOf(st,s.conf);
+    const natAvg=isG5(s.conf)?g5Avg:p5Avg;   // schools judge you against their tier
+    const expect=Math.max(isG5(s.conf)?0.5:3,natAvg*(s.brand/75));
+    let d=Math.max(-12,Math.min(12,(pay/expect-1)*25));
+    const c=st.confs[s.conf];
+    if(c&&c.tv.expires-st.year>3)d+=1.5;
+    if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));  // travel weariness
+    if(s.gorUntil&&s.gorUntil>st.year)d-=1;                                     // GOR resentment drip
+    d+=(rng()*6-3);
+    s.mood=Math.max(5,Math.min(98, s.mood+(50-s.mood)*0.08+d ));
+  }
+}
+
+/* ---------- events / choices ---------- */
+function news(st,txt,cls){st.news.unshift({yr:st.year,txt,cls:cls||"event"});if(st.news.length>350)st.news.length=350;}
+function log(st,txt){st.log.push({yr:st.year,txt});}
+
+/* ---------- storyline engine ---------- */
+const pick=a=>a.length?a[Math.floor(rng()*a.length)]:null;
+const tmpl=a=>a[Math.floor(rng()*a.length)];
+const SENATORS=["Harlan Whitcomb","Delia Fairbanks","Buck Rearden","Marlene Hutch","Theo Granger","Bobby Lee Castle","Ione Merriweather","Gus Palladino"];
+const INSIDERS=["Chet Marlin","Dana Voss","Rex Calloway","D.J. Whitlock"];
+const senName=()=>`Sen. ${tmpl(SENATORS)} ${tmpl(["(R)","(D)"])}`;
+const insider=()=>tmpl(INSIDERS);
+function weightedPick(arr,wf){
+  let t=0;const cum=arr.map(s=>{t+=wf(s);return t;});
+  const r=rng()*t;
+  for(let i=0;i<arr.length;i++)if(r<cum[i])return arr[i];
+  return arr[arr.length-1];
+}
+function seasonStories(st){
+  if(st.confs[st.player].dead)return;
+  // ---- national title race ----
+  const field=st.schools.filter(s=>s.conf!=="sl");
+  const champ=weightedPick(field,s=>Math.pow(Math.max(1,s.brand-35),2));
+  champ.brand=Math.min(99,champ.brand+4);champ.mood=Math.min(98,champ.mood+10);
+  const inP=champ.conf===st.player;
+  st.champs[champ.abbr]=(st.champs[champ.abbr]||0)+1;
+  if(inP){st.titles++;log(st,`${champ.abbr} wins the national title`);if(isG5(st.player))st.g5Natty=true;}
+  news(st,tmpl([
+    `🏆 <b>${champ.name}</b> wins the ${st.year} national championship${inP?" — a banner year for your league":""}.`,
+    `🏆 Confetti in ${champ.name}'s colors: ${st.year} national champions${inP?". Your league office keeps the receipt":""}.`,
+    `🏆 <b>${champ.name}</b> finishes the job. ${st.year} belongs to them${inP?" — and to your TV negotiators":""}.`]),inP?"good":"event");
+  // Cinderella: a G5 program busts the party some years
+  if(st.year>=2007&&rng()<0.4){
+    const cindy=pick(st.schools.filter(s=>isG5(s.conf)&&s.brand<65));
+    if(cindy){cindy.brand=Math.min(99,cindy.brand+6);cindy.mood=Math.min(98,cindy.mood+8);
+      news(st,`🌟 <b>${cindy.name}</b> goes ${st.year>=2024?"to the Playoff":"undefeated and busts the big boys' bowl party"}. A star is born.`, cindy.conf===st.player?"good":"event");}
+  }
+  // ---- the annual rich list drops ----
+  if(st.year%2===1){
+    const vals=st.schools.filter(x=>x.conf!=="sl").map(x=>({x,v:programValue(st,x)})).sort((a,b)=>b.v-a.v);
+    const t=vals[0];
+    if(t)news(st,`💰 Forbes: <b>${t.x.name}</b> is college football's most valuable program at <b>${fmtM(t.v)}</b>${t.x.conf===st.player?" — and it plays in your league":""}.`,t.x.conf===st.player?"good":"money");
+  }
+  // ---- flavor stories ----
+  if(rng()<0.62)runFlavor(st);
+  if(rng()<0.32)runFlavor(st);
+  // ---- the money flywheel: rich leagues' brands compound, poor leagues' erode ----
+  const aliveIds=ALLC.filter(id=>!st.confs[id].dead);
+  const topPay=Math.max(...aliveIds.map(id=>payoutOf(st,id)),1);
+  for(const s of st.schools){
+    let dr=rng()*2-1;
+    if(s.conf!=="sl"){
+      const rich=payoutOf(st,s.conf)/topPay;          // TV money buys recruiting, facilities, exposure
+      dr+=(rich-0.4)*0.9;
+    } else dr+=0.5;
+    if(s.devUntil&&s.devUntil>st.year)dr+=2;
+    s.brand=Math.max(35,Math.min(99,s.brand+dr));
+  }
+  // ---- a dilemma lands on your desk ----
+  if(rng()<0.38)queueChoiceEvent(st);
+}
+function runFlavor(st){
+  const pool=st.schools.filter(s=>s.conf!=="sl");
+  const s=pick(pool);if(!s)return;
+  const acts=[
+   [12,()=>{const t=pick(pool.filter(x=>x.conf!==st.player));if(!t)return;
+     t.brand=Math.max(35,t.brand-7);t.mood-=10;
+     news(st,tmpl([`\u{1F6A8} NCAA hammer drops on <b>${t.name}</b>. Sanctions, vacated wins, the works.`,
+       `\u{1F6A8} ${t.name} lands on probation. The booster did, in fact, have a bag.`,
+       `\u{1F6A8} Show-cause city: the committee guts <b>${t.name}</b>'s program.`]),"poach");}],
+   [13,()=>{s.brand=Math.min(99,s.brand+3);s.mood=Math.min(98,s.mood+6);
+     news(st,tmpl([`\u{1F947} ${s.name}'s quarterback wins the Heisman. Recruiting is about to eat.`,
+       `\u{1F947} A Heisman goes home to ${s.name}. The logo is on every kid's wall by Christmas.`]),"event");}],
+   [9,()=>{const t=pick(pool.filter(x=>x.brand>=72));if(!t)return;t.brand=Math.max(35,t.brand-4);
+     news(st,tmpl([`\u{1F44B} A coaching legend retires at <b>${t.name}</b>. An era ends in ${st.year}.`,
+       `\u{1F44B} The statue outside ${t.name}'s stadium gets a retirement date. End of an era.`]),"event");}],
+   [11,()=>{const t=pick(pool.filter(x=>x.brand<70));if(!t)return;t.brand=Math.min(99,t.brand+5);
+     news(st,tmpl([`\u{1F4C8} <b>${t.name}</b> lands the hottest young coach in America. Program on the rise.`,
+       `\u{1F4C8} ${t.name} hires a 34-year-old offensive savant. The spread sheets, in both senses, look great.`]),"good");}],
+   [9,()=>{s.market=Math.min(99,s.market+6);
+     news(st,`\u{1F3D9} Population boom: the <b>${s.name}</b> TV market just got a lot more valuable.`,"money");}],
+   [6,()=>{s.market=Math.max(25,s.market-5);
+     news(st,`\u2702\uFE0F Cord-cutting bites hard in the ${s.name} market.`,"event");}],
+   [8,()=>{const r=pick(members(st,s.conf).filter(x=>x!==s));if(!r)return;
+     s.brand=Math.min(99,s.brand+2);r.brand=Math.min(99,r.brand+2);
+     news(st,tmpl([`\u{1F525} ${s.name}\u2013${r.name} goes to double OT and breaks the internet. The sport wins.`,
+       `\u{1F525} ${s.name} and ${r.name} play an instant classic. Protect the rivalries, cowards.`]),"event");}],
+   [7,()=>{s.mood=Math.min(98,s.mood+4);
+     news(st,`\u{1F4E3} College GameDay rolls into ${s.name}. Campus loses its mind.`,"event");}],
+   [5,()=>{const t=pick(pool.filter(x=>x.conf==="mac"));if(!t)return;t.brand=Math.min(99,t.brand+2);
+     news(st,`\u{1F319} #MACtion: ${t.name} wins a Tuesday-night 63\u201359 fever dream. America was watching.`,"event");}],
+   [10,()=>{news(st,`\u{1F3DB} ${senName()} has been "calling around" about <b>${s.name}</b>'s conference future, per ${insider()}. Every AD who took the call regrets it.`,"event");}],
+   [8,()=>{news(st,`\u{1F399} "We are thrilled with our current conference home," says ${s.name}'s AD, through a smile that says otherwise.`,"event");}],
+   [6,()=>{const t=pick(pool.filter(x=>x!==s));if(!t)return;
+     news(st,`\u{1F440} ${s.name}'s chancellor spotted at a ${t.name} booster gala. Probably nothing. (It is never nothing.)`,"event");}],
+   [7,()=>{const cid=pick(ALLC.filter(id=>!st.confs[id].dead));if(!cid)return;
+     const t=pick(pool.filter(x=>x.conf!==cid));if(!t)return;
+     news(st,`\u{1F6F0} ${insider()}: the ${st.confs[cid].name} has "done its homework" on <b>${t.name}</b>. Nothing imminent. Sources stress: nothing imminent.`,"event");}],
+   [4,()=>{news(st,st.year<2014?`\u270D\uFE0F Column of the week: "The BCS is fine, actually." The comment section is a war zone.`
+     :st.year<2024?`\u270D\uFE0F Column of the week: "Just expand the Playoff and nobody gets hurt."`
+     :`\u270D\uFE0F Column of the week: "Does the transfer portal need a portal?" Nobody knows anymore.`,"event");}]
+  ];
+  const tot=acts.reduce((a,x)=>a+x[0],0);let r=rng()*tot;
+  for(const wf of acts){r-=wf[0];if(r<0){wf[1]();return;}}
+}
+const CHOICE_EVENTS=[
+ {id:"probe",cd:5,cond:st=>members(st,st.player).length>0,make:st=>{
+   const t=pick(members(st,st.player));
+   return {title:`NCAA opens a probe into ${t.name}`,sub:`${st.year} · burner phones and bag men`,
+     body:`Investigators have receipts on one of your programs. How hard does the league office lean on the process?`,
+     opts:[
+      {label:"CIRCLE THE WAGONS",kbd:"60% it disappears · 40% it blows up worse",fn:()=>{
+        if(rng()<0.6)news(st,`🕶 The ${t.name} probe quietly dies. Nothing to see here.`,"good");
+        else{t.brand=Math.max(35,t.brand-8);t.mood-=12;news(st,`🚨 Cover-up at <b>${t.name}</b> blows up. The sanctions land twice as hard.`,"poach");}}},
+      {label:"COOPERATE FULLY",kbd:`${t.abbr} −3 brand · −8 mood · clean hands`,fn:()=>{
+        t.brand=Math.max(35,t.brand-3);t.mood-=8;
+        news(st,`⚖ ${t.name} takes its medicine. The league's reputation survives.`,"event");}}]};
+ }},
+ {id:"stream",cd:6,cond:st=>st.year>=2015,make:st=>{
+   const c=st.confs[st.player],mv=mediaValue(st,st.player);
+   return {title:"A streamer wants to overpay",sub:`${st.year} · Silicon Valley money`,
+     body:`A streaming platform offers <b>${fmtM(mv*1.25)}/yr</b> — 25% over market — on a short 3-year deal. The catch: weeknight kickoffs and an app your fans will hate.`,
+     opts:[
+      {label:"TAKE THE BAG",kbd:"replaces your current deal · 3 yrs · members −5 mood",fn:()=>{
+        c.tv.rate=mv*1.25;c.tv.len=3;c.tv.expires=st.year+3;
+        members(st,st.player).forEach(m=>m.mood-=5);
+        news(st,`📱 You sign with the streamer at a 25% premium. Kickoff: Tuesday, 9:45 PM.`,"money");log(st,"Took the streaming overpay");}},
+      {label:"SATURDAYS ARE SACRED",kbd:"no change · members +3 mood",fn:()=>{
+        members(st,st.player).forEach(m=>m.mood+=3);
+        news(st,`📺 You pass on the streamer. Tradition holds — for now.`,"event");}}]};
+ }},
+ {id:"lawsuit",cd:6,cond:st=>st.confs[st.player].exitFee>=50,make:st=>{
+   const c=st.confs[st.player];
+   return {title:"Your exit fee is challenged in court",sub:`${st.year} · the antitrust lawyers assemble`,
+     body:`A member's boosters are bankrolling a legal challenge to your ${fmtM(c.exitFee)} exit fee.`,
+     opts:[
+      {label:"FIGHT IT",kbd:"55% upheld (members +2 mood) · 45% fee halved",fn:()=>{
+        if(rng()<0.55){members(st,st.player).forEach(m=>m.mood+=2);news(st,`⚖ Courts uphold your exit fee. Poachers take note.`,"good");}
+        else{c.exitFee=Math.max(10,Math.round(c.exitFee/2));news(st,`⚖ Your exit fee gets <b>halved</b> to ${fmtM(c.exitFee)}. It's open season.`,"poach");}}},
+      {label:"SETTLE QUIETLY",kbd:"exit fee −$20M · it goes away",fn:()=>{
+        c.exitFee=Math.max(10,c.exitFee-20);news(st,`🤫 You settle. Exit fee now ${fmtM(c.exitFee)}.`,"event");}}]};
+ }},
+ {id:"pe",cd:99,cond:st=>st.year>=2024,make:st=>{
+   const c=st.confs[st.player];
+   return {title:"Private equity comes calling",sub:`${st.year} · a term sheet slides across the table`,
+     body:`A fund wants 10% of your league's media entity. Enormous money up front — and a hand in your pocket forever.`,
+     opts:[
+      {label:"TAKE THE INVESTMENT",kbd:"+16% revenue for 3 yrs · then −8% forever",fn:()=>{
+        c.pen.push({until:st.year+3,pct:-0.26},{until:2099,pct:0.08});
+        news(st,`🏦 You sell 10% to private equity. The checks are enormous. The strings are permanent.`,"money");log(st,"Sold 10% to private equity");}},
+      {label:"KEEP IT IN THE FAMILY",kbd:"no change",fn:()=>{
+        news(st,`🚪 You show the fund the door. Your successors may thank you.`,"event");}}]};
+ }},
+ {id:"unequal",cd:5,cond:st=>members(st,st.player).some(s=>s.brand>=84&&s.mood<50),make:st=>{
+   const t=members(st,st.player).filter(s=>s.brand>=84&&s.mood<50).sort((a,b)=>b.brand-a.brand)[0];
+   return {title:`${t.name} demands a bigger cut`,sub:`${st.year} · "we ARE this conference"`,
+     body:`Your biggest brand wants unequal revenue sharing — and they're taking calls from other leagues while they wait.`,
+     opts:[
+      {label:"PAY THE KING",kbd:`${t.abbr} +20 mood · every other member −6`,fn:()=>{
+        t.mood=Math.min(98,t.mood+20);members(st,st.player).forEach(m=>{if(m!==t)m.mood-=6;});
+        news(st,`👑 ${t.name} gets its unequal share. The rest of the league takes notes for later.`,"event");log(st,`Gave ${t.abbr} an unequal share`);}},
+      {label:"EQUAL MEANS EQUAL",kbd:`${t.abbr} −12 mood · principle intact`,fn:()=>{
+        t.mood-=12;news(st,`🪨 You hold the line on equal sharing. ${t.name} is furious.`,"event");}}]};
+ }},
+ {id:"pol",cd:6,cond:st=>{
+   const ct=centroid(st,st.player);
+   return st.schools.some(s=>isG5(s.conf)&&s.conf!==st.player&&distMi(s,ct)<600);
+ },make:st=>{
+   const ct=centroid(st,st.player);
+   const t=pick(st.schools.filter(s=>isG5(s.conf)&&s.conf!==st.player&&distMi(s,ct)<600));
+   return {title:`A senator wants ${t.name} in your league`,sub:`${st.year} · politics crashes the party`,
+     body:`A powerful state legislator is publicly demanding you invite <b>${t.name}</b> — and hinting at hearings if you don't.`,
+     opts:[
+      {label:"MAKE THE CALL",kbd:"free invitation · +25 odds · no AP cost",fn:()=>{
+        const a=acceptChance(st,t,st.player);
+        if(rng()*100<Math.min(95,a.p+25))moveSchool(st,t,st.player,"the senator gets his win");
+        else news(st,`${t.name} somehow says no to the free invite. The senator moves on.`,"event");}},
+      {label:"LEAGUES AREN'T LEGISLATED",kbd:"decline · nothing happens (probably)",fn:()=>{
+        news(st,`🏛 You decline the senator's request. The hearings never materialize.`,"event");}}]};
+ }},
+ {id:"veto",cd:3,cond:st=>!!(st.confs[st.player].concordat&&st.confs.sl&&!st.confs.sl.dead),make:st=>({
+   title:"The Super League exercises its veto",sub:`${st.year} · the leash tightens`,
+   body:`Your partners "request" that your marquee rivalry move to a Tuesday streaming window to protect their Saturday inventory. The Concordat's fine print, as promised.`,
+   opts:[
+    {label:"COMPLY",kbd:"every member −4 mood",fn:()=>{members(st,st.player).forEach(m=>m.mood-=4);
+      news(st,`🐕 You move the big game to Tuesday night. The Concordat holds. Your fans notice.`,"event");}},
+    {label:"DEFY THEM",kbd:"−5% revenue for 2 yrs · members +3 mood",fn:()=>{payCost(st,0.05,2);members(st,st.player).forEach(m=>m.mood+=3);
+      news(st,`✊ You keep Saturday. The Super League's lawyers send a strongly worded invoice.`,"event");}}
+   ]})},
+ {id:"coach",cd:4,cond:st=>members(st,st.player).length>0,make:st=>{
+   const t=pick(members(st,st.player));
+   return {title:`The NFL is stealing ${t.name}'s coach`,sub:`${st.year} · agent games`,
+     body:`The best coach in your league has an NFL offer. The school is begging the conference to help fund a counter.`,
+     opts:[
+      {label:"HELP FUND THE COUNTER",kbd:`−1% league revenue 2 yrs (war chest first) · ${t.abbr} +3 brand, +5 mood`,fn:()=>{
+        payCost(st,0.01,2);
+        t.brand=Math.min(99,t.brand+3);t.mood=Math.min(98,t.mood+5);
+        news(st,`💼 The league chips in and ${t.name} keeps its coach. Money well spent?`,"good");}},
+      {label:"NOT OUR PROBLEM",kbd:`${t.abbr} −5 brand · −5 mood`,fn:()=>{
+        t.brand=Math.max(35,t.brand-5);t.mood-=5;
+        news(st,`✈️ ${t.name}'s coach takes the NFL job. The rebuild begins.`,"event");}}]};
+ }}
+];
+function queueChoiceEvent(st){
+  const elig=CHOICE_EVENTS.filter(e=>(st.evtCd[e.id]===undefined||st.evtCd[e.id]+e.cd<=st.year)&&e.cond(st));
+  if(!elig.length)return;
+  const e=pick(elig);
+  st.evtCd[e.id]=st.year;
+  st.queue.push({type:"choice",spec:e.make(st)});
+}
+
+function queueSecRaid(st,school,toId){
+  st.queue.push({type:"secRaid",school,toId});
+}
+
+function yearEvents(st){
+  const y=st.year;
+  cropRefresh(st);
+  seasonStories(st);
+  if(y===2007)news(st,`💡 Conference networks are now viable. A bold commissioner could launch one…`,"event");
+  if(y===2009)news(st,`🌡 Expansion fever grips the sport. The next four years will redraw the map.`,"event");
+  if(y===2010&&st.player!=="b12"&&!st.confs.b12.dead){
+    const tex=byAbbr(st,"TEX");
+    if(tex&&tex.conf==="b12"){tex.mood-=10;news(st,`📡 Texas launches the Longhorn Network. Big 12 partners seethe.`,"event");}
+  }
+  if(y===2010&&st.player==="b12"){
+    const tex=byAbbr(st,"TEX");
+    if(tex&&tex.conf==="b12")st.queue.push({type:"lhn",tex});
+  }
+  if(y===2012)news(st,`🏆 A four-team <b>College Football Playoff</b> is announced for 2014. TV money is about to explode.`,"money");
+  if(y===2014)news(st,`🏆 The Playoff era begins. Every media negotiation from here on is bigger.`,"money");
+  if(y===2016&&st.player==="b12"&&!st.confs.b12.dead){st.ap+=1;news(st,`🚪 Expansion window: your board grants an extra action this offseason.`,"good");}
+  if(y===2020)news(st,`🦠 A pandemic guts gate and TV revenue. Every league takes a 20% haircut this season.`,"poach");
+  if(y===2023){ // the streaming rights crunch: weak deals expiring into a buyer's market
+    news(st,`📉 <b>The rights bubble wobbles.</b> Networks are suddenly picky, and leagues renewing from weakness are getting picked apart.`,"event");
+    const p5pay=P5.filter(id=>!st.confs[id].dead).map(id=>payoutOf(st,id)).sort((a,b)=>b-a);
+    for(const id of P5){
+      const c=st.confs[id];
+      if(c.dead||c.wounded>st.year)continue;
+      const rank=p5pay.indexOf(payoutOf(st,id));
+      if(c.tv.expires<=st.year+2&&rank>=p5pay.length-2&&members(st,id).length<12){
+        c.wounded=st.year+2;
+        for(const m of members(st,id))m.mood-=12;
+        news(st,`🩸 <b>The ${c.name} can't find a broadcast partner.</b> Members are taking calls they'd never have taken last year.`,"poach");
+      }
+    }
+  }
+  if(y===2024)news(st,`🏆 The <b>12-team Playoff</b> arrives — and so does athlete revenue sharing. Bigger checks, bigger bills.`,"money");
+  if(y===2030&&!st.slStarted){st.slStarted=true;st.queue.push({type:"superLeague"});}
+  if(y>=2030&&st.slStarted)slPressure(st);
+  if(y>=2031&&st.slStarted)slRaid(st);
+  if(y>=2031&&st.slStarted)bustCheck(st);
+  if(y>=2031&&st.confs[st.player].slWin)queueEmpire(st);
+}
+function bustCheck(st){
+  const sl=st.confs.sl;
+  if(!sl||sl.dead||st.confs[st.player].slWin)return;
+  // co-plaintiffs pile on while the breakaway is stalling
+  if(rng()<0.35&&members(st,"sl").length<10){
+    st.slCase=(st.slCase||0)+0.5;
+    news(st,`⚖ ${insider()}: more leagues have quietly joined the antitrust suit against the Super League. The case grows teeth.`,"event");
+  }
+  if((st.slCase||0)>=3&&members(st,"sl").length<8&&st.year>=(st.slBirth||9999)+3){
+    const scattered=members(st,"sl");
+    sl.dead=true;sl.diedYr=st.year;st.slBusted=true;
+    for(const s of scattered){s.conf="g5";s.mood=48;s.lastCourt=0;}
+    news(st,`⚖⚡ <b>THE SUPER LEAGUE IS DEAD.</b> The antitrust ruling lands, the investors flee, and ${scattered.length} blue-bloods hit the open market at once. The greatest free agency in the history of the sport starts NOW.`,"good");
+    log(st,"Busted the Super League in court");
+  }
+}
+function playerConcordat(st){
+  spendAP(st,2);
+  const c=st.confs[st.player];
+  c.concordat=true;
+  news(st,`🤝 <b>You sign the Concordat.</b> Your league becomes the Super League's chosen partner: +18% media forever, your members untouchable — and their lawyers now read your mail. The antitrust suit loses its loudest voice.`,"money");
+  log(st,"Signed the Concordat with the Super League");
+}
+function playerRestore(st){
+  spendAP(st,2);
+  st.restored=true;
+  for(const s of st.schools)s.mood=Math.min(98,s.mood+8);
+  news(st,`🎓 <b>THE RESTORATION.</b> Led by your league, the schools sign the Scholarship Charter: regional schedules, education first, athletes on full rides. The private-equity money shrugs and buys an NFL expansion team instead.`,"good");
+  news(st,`🚌 Somewhere tonight, a bus full of kids is driving two hours to play their blood rival. As intended.`,"good");
+  log(st,"Led the Restoration — the Scholarship Charter");
+}
+function playerSueSL(st){
+  spendAP(st,1);
+  payCost(st,0.02,2);
+  st.slCase=(st.slCase||0)+1;
+  news(st,tmpl([`⚔️ Your lawyers file another four hundred pages against the Super League. ${senName()} promises hearings.`,
+    `⚔️ You bankroll the antitrust war. Their counsel bills by the hour; yours bills by the grudge.`,
+    `⚔️ Discovery time: the Super League's group chats are about to become public record.`]),"event");
+  log(st,`Funded the antitrust case (${Math.round(st.slCase*10)/10}/3)`);
+}
+
+/* ---------- the endgame: what happens AFTER the throne ---------- */
+function slRaid(st){                       // the breakaway hunts, actively
+  if(!st.confs.sl||st.confs.sl.dead||st.confs[st.player].slWin)return;
+  const top=[...st.schools].filter(s=>s.conf!=="sl"&&s.conf!=="g5").sort((a,b)=>b.brand-a.brand).slice(0,6);
+  const tgt=pick(top.filter(s=>!(s.conf===st.player&&(st.confs[st.player].fought>=st.year||st.confs[st.player].concordat))));
+  if(!tgt)return;
+  const a=acceptChance(st,tgt,"sl",{scripted:true});
+  if(tgt.conf===st.player)news(st,`⚠ The Super League is courting <b>${tgt.name}</b> with gold-bar money…`,"poach");
+  if(rng()*100<a.p)moveSchool(st,tgt,"sl","resistance was expensive");
+  else if(tgt.conf===st.player)news(st,`🛡 ${tgt.name} turns the Super League down. Loyalty still exists.`,"good");
+}
+function queueEmpire(st){                  // ruling is its own game
+  const c=st.confs[st.player], mem=members(st,st.player);
+  if(mem.length>7&&(st.evtCd.invest===undefined||st.evtCd.invest+2<=st.year)&&rng()<0.65){
+    st.evtCd.invest=st.year;
+    const t=[...mem].sort((a,b)=>a.brand-b.brand)[0];
+    st.queue.push({type:"choice",spec:{
+      title:"The investors want blood",sub:`${st.year} · empire maintenance`,
+      body:`Your Super League backers say <b>${t.name}</b> is diluting the product. Cut them loose, or the money men get restless.`,
+      opts:[
+        {label:"CUT THEM LOOSE",kbd:`${t.abbr} expelled · every member −8 mood`,fn:()=>{
+          st.ledger.push({yr:st.year,ab:t.abbr,school:t.name,from:c.name,to:"Independent",toId:"g5"});
+          t.conf="g5";t.mood=15;t.grudge=st.player;t.lastCourt=st.year;st.expels++;
+          members(st,st.player).forEach(m=>m.mood-=8);
+          news(st,`🥾 The empire trims the fat: <b>${t.name}</b> is out.`,"poach");log(st,`Cut ${t.abbr} for the investors`);}},
+        {label:"DEFY THE MONEY",kbd:"−6% revenue for 2 yrs · members +6 mood",fn:()=>{
+          c.pen.push({until:st.year+2,pct:0.06});
+          members(st,st.player).forEach(m=>m.mood+=6);
+          news(st,`✊ You protect ${t.name} from the spreadsheet. The league notices who you are.`,"good");log(st,`Defied the investors over ${t.abbr}`);}}
+      ]}});
+  }
+  const rivals=ALLC.filter(id=>!st.confs[id].dead&&id!==st.player);
+  const second=Math.max(...rivals.map(id=>payoutOf(st,id)),1);
+  if(st.evtCd.trust===undefined&&payoutOf(st,st.player)>second*1.8){
+    st.evtCd.trust=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"Washington calls a hearing",sub:`${st.year} · the empire gets audited`,
+      body:`Your league pays ${fmtM(payoutOf(st,st.player))}/school; nobody else clears ${fmtM(second)}. Congress smells a monopoly.`,
+      opts:[
+        {label:"SETTLE — SHARE THE WEALTH",kbd:"−8% revenue for 3 yrs · the heat dies",fn:()=>{
+          c.pen.push({until:st.year+3,pct:0.08});
+          news(st,`🏛 You cut revenue-sharing checks to the little guys. The hearing ends politely.`,"event");log(st,"Settled with Congress");}},
+        {label:"FIGHT THE FEDS",kbd:"50% walk free · 50% −12% for 3 yrs",fn:()=>{
+          if(rng()<0.5){news(st,`🏛 Your lawyers shred the antitrust case. Untouchable.`,"good");log(st,"Beat the antitrust case");}
+          else{c.pen.push({until:st.year+3,pct:0.12});news(st,`🏛 The feds win. Forced revenue sharing, three years.`,"poach");log(st,"Lost the antitrust case");}}}
+      ]}});
+  }
+}
+
+function top16(st){return [...st.schools].sort((a,b)=>b.brand-a.brand).slice(0,16);}
+
+function slPressure(st){
+  if(!st.confs.sl||st.confs.sl.dead){return;}
+  for(const s of top16(st)){
+    if(s.conf==="sl")continue;
+    const c=st.confs[s.conf];
+    if(s.conf===st.player&&(c.fought>=st.year||c.concordat))continue;
+    if(c&&c.slWin)continue;
+    if(s.mood<52&&rng()<0.22){
+      moveSchool(st,s,"sl","the breakaway comes calling");
+    }
+  }
+}
+
+/* ---------- player actions ---------- */
+function spendAP(st,n){st.ap-=n;}
+// costs come out of the war chest first; only unfunded costs dent revenue
+function payCost(st,pct,years){
+  const c=st.confs[st.player];
+  const dollars=effRate(st,st.player)*pct*years;
+  if((c.chest||0)>=dollars){c.chest-=dollars;return "chest";}
+  c.pen.push({until:st.year+years,pct});
+  return "rev";
+}
+function playerBonus(st){
+  spendAP(st,1);
+  const c=st.confs[st.player];
+  const mem=members(st,st.player);
+  const per=c.chest/Math.max(1,mem.length);
+  const bump=Math.min(14,Math.max(2,Math.round(per/4)));
+  for(const m of mem)m.mood=Math.min(98,m.mood+bump);
+  news(st,`💸 <b>You distribute the war chest:</b> ${fmtM(c.chest)} split among the members. Everyone's AD suddenly remembers your birthday. (+${bump} mood)`,"good");
+  log(st,`Distributed ${fmtM(c.chest)} war chest`);
+  c.chest=0;
+}
+function canAct(st,n){return st.ap>=(n||1)&&!st.over;}
+
+function playerCourt(st,school,sweeten){
+  const a=acceptChance(st,school,st.player,{sweeten});
+  school.lastCourt=st.year;
+  spendAP(st,1);
+  if(sweeten)payCost(st,0.04,4);
+  if(rng()*100<a.p){
+    moveSchool(st,school,st.player,"your pitch lands");
+    return true;
+  }
+  news(st,tmpl([`${school.name} rebuffs your invitation. The pitch wasn't rich enough.`,
+    `${school.name} says no — politely, publicly, and after leaking the offer to ${insider()}.`,
+    `Your pitch to ${school.name} dies in a board room. "Timing," they say. It's never timing.`]),"event");
+  school.mood+=4;
+  return false;
+}
+function playerRetain(st,school){
+  spendAP(st,1);
+  school.mood=Math.min(98,school.mood+16);
+  payCost(st,0.02,2);
+  news(st,`🤝 You sweeten the pot for <b>${school.name}</b>. Their AD cancels some meetings.`,"good");
+  log(st,`Retention package for ${school.abbr}`);
+}
+function playerExitFee(st){
+  spendAP(st,1);
+  st.confs[st.player].exitFee+=20;
+  for(const m of members(st,st.player))m.mood-=2;
+  news(st,`⚖ Exit fee raised to ${fmtM(st.confs[st.player].exitFee)}. Lawyers rejoice; members grumble.`,"event");
+  log(st,`Exit fee → ${fmtM(st.confs[st.player].exitFee)}`);
+}
+function playerNetwork(st){
+  spendAP(st,2);
+  st.confs[st.player].network=true;
+  news(st,`📺 <b>You launch the ${st.confs[st.player].name} Network.</b> A money-printing machine, if the markets hold.`,"money");
+  log(st,`Launched conference network`);
+}
+function playerExpel(st,school){
+  spendAP(st,1);
+  st.expels++;
+  st.ledger.push({yr:st.year,ab:school.abbr,school:school.name,from:st.confs[st.player].name,to:"Independent",toId:"g5"});
+  school.conf="g5";school.mood=15;school.grudge=st.player;school.lastCourt=st.year;
+  for(const m of members(st,st.player))m.mood-=8;
+  news(st,`🥾 <b>You expel ${school.name}.</b> The remaining members applaud publicly and update their résumés privately.`,"poach");
+  log(st,`Expelled ${school.abbr}`);
+}
+function playerInvest(st,school){
+  spendAP(st,1);
+  payCost(st,0.02,2);
+  school.devUntil=st.year+3;
+  school.mood=Math.min(98,school.mood+6);
+  news(st,tmpl([`🏗 The league bankrolls a facilities arms race at <b>${school.name}</b>. Cranes on campus by spring.`,
+    `🏗 You invest league money in <b>${school.name}</b>. Recruiting lounge? Waterfall. Obviously.`]),"good");
+  log(st,`Invested in ${school.abbr}`);
+}
+function playerGor(st){
+  spendAP(st,1);
+  for(const m of members(st,st.player))m.gorUntil=st.year+8;
+  st.confs[st.player].gorLabel=st.year+8;
+  news(st,`🔒 <b>Every member signs a Grant of Rights through ${st.year+8}.</b> Their TV money is yours even if they leave — poachers hate this one trick.`,"money");
+  log(st,`Grant of Rights signed through ${st.year+8}`);
+}
+function playerCcg(st){
+  spendAP(st,1);
+  st.confs[st.player].ccg=true;
+  news(st,`🏟 You launch a <b>conference championship game</b>. One extra Saturday, four percent more money, forever.`,"money");
+  log(st,`Launched the championship game`);
+}
+function cropRefresh(st){
+  if(!isG5(st.player))return;
+  const avail=FCS_POOL.filter(r=>!st.fcsUsed.includes(r[0]));
+  if(!avail.length){st.fcsCrop=null;return;}
+  if(st.fcsCrop&&st.year-st.fcsCrop.yr<3&&st.fcsCrop.list.some(e=>!st.fcsUsed.includes(e.abbr)))return;
+  // deal a fresh scouting crop: 5 schools, form varies cycle to cycle
+  const deck=[...avail];
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  const list=deck.slice(0,5).map(r=>{
+    const hot=rng()<0.18;
+    const b=Math.max(35,Math.min(60,Math.round(r[4]-2+rng()*8+(hot?8:0))));
+    return {abbr:r[0],brand:b,hot};
+  });
+  st.fcsCrop={yr:st.year,list};
+  if(st.year-st.lastFcs>=1){
+    const names=list.map(e=>{const r=FCS_POOL.find(x=>x[0]===e.abbr);return e.hot?`<b>${r[1]}</b> 🔥`:r[1];});
+    news(st,`🌾 FCS scouting report — this cycle's risers: ${names.join(", ")}.`,"event");
+  }
+}
+function playerPromote(st,row,brandOverride){
+  spendAP(st,2);
+  const s={id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],brand:brandOverride||row[4],market:row[5],
+    conf:st.player,orig:st.player,aau:false,mood:88,ind:false,lastCourt:st.year,color:row[6]};
+  st.schools.push(s);
+  st.fcsUsed.push(row[0]);st.lastFcs=st.year;
+  st.fcsCrop=null;                                   // a new crop grows for the next window
+  st.ledger.push({yr:st.year,ab:s.abbr,school:s.name,from:"FCS",to:st.confs[st.player].name,toId:st.player});
+  news(st,`⛏ <b>${s.name} moves up from the FCS</b> to join the ${st.confs[st.player].name}. They'd run through a wall for you.`,"good");
+  log(st,`Promoted ${s.abbr} from the FCS`);
+}
+function playerFormSL(st){
+  spendAP(st,2);
+  st.slFormed=true;st.slStarted=true;st.slBirth=st.year;
+  const c=st.confs[st.player];c.slWin=true;
+  st.confs.sl={id:"sl",name:"Super League",hex:"#ffd700",color:"#ffd700",diff:null,blurb:"",
+    tv:{rate:mediaValue(st,st.player)*1.6,expires:2099,len:99},exitFee:0,network:true,pen:[],dead:false,
+    payout:0,hist:[],desperation:0,slWin:false,fought:0,lost:0,wounded:0,chest:0};
+  news(st,`👑 <b>You don't wait for the future — you announce it.</b> The ${c.name} declares itself the spine of the Super League. Media rate up 30%, permanently. Congress clears its throat.`,"good");
+  log(st,"Founded the Super League");
+}
+function playerDeal(st,len,mod,stab){
+  const c=st.confs[st.player];
+  c.tv.rate=mediaValue(st,st.player)*mod;
+  c.tv.len=len;c.tv.expires=st.year+len;
+  if(stab)for(const m of members(st,st.player))m.mood+=6;
+  news(st,`💰 New media deal: <b>${fmtM(c.tv.rate)}/yr</b> for ${len} years.`,"money");
+  log(st,`Signed ${len}-yr deal @ ${fmtM(c.tv.rate)}/yr`);
+}
+
+/* ---------- season flow ---------- */
+function advance(){
+  if(!S)return;
+  if(S.over){endScreen();return;}
+  const c=S.confs[S.player];
+  if(S.year>=c.tv.expires){ tvModal(true); return; }  // must sign before season runs
+  runSeason();
+}
+function runSeason(){
+  S.moves=[];
+  for(const id in S.confs)S.confs[id].lost=0;
+  runMerger(S);
+  runFormations(S);
+  yearEvents(S);
+  processQueue(()=>{
+    runScripts(S);
+    aiTurns(S);
+    woundCheck(S);
+    processQueue(()=>{
+    seasonEcon(S);
+    seasonMoods(S);
+    // record rank among ALL living conferences
+    const alive=ALLC.filter(id=>!S.confs[id].dead);
+    const sorted=[...alive].sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
+    if(!S.confs[S.player].dead)S.ranks.push(sorted.indexOf(S.player)+1);
+    S.year++;
+    S.ap=(S.confs[S.player].rebuildUntil>=S.year)?4:2;
+    if(S.over==="dead"){renderAll();endScreen();return;}
+    if(S.year>=S.endYear){renderAll();endScreen();return;}
+    renderAll();
+    toast(`Season complete — welcome to ${S.year}.`);
+    animateMoves(S.moves);
+    });
+  });
+}
+function processQueue(done){
+  if(!S.queue.length){done();return;}
+  const q=S.queue.shift();
+  if(q.type==="lhn")lhnModal(q,()=>processQueue(done));
+  else if(q.type==="secRaid")secRaidModal(q,()=>processQueue(done));
+  else if(q.type==="superLeague")superLeagueModal(()=>processQueue(done));
+  else if(q.type==="choice")choiceModal(q.spec,()=>processQueue(done));
+  else processQueue(done);
+}
+
+/* ---------- scoring ---------- */
+const letterOf=s=>s>=96?"S":s>=92?"A+":s>=84?"A":s>=76?"B+":s>=68?"B":s>=58?"C+":s>=48?"C":s>=40?"D":"F";
+function soulScore(){
+  const c=S.confs[S.player];
+  const mem=members(S,S.player);
+  if(c.dead||!mem.length)return 0;
+  const avgMood=mem.reduce((a,s)=>a+s.mood,0)/mem.length;
+  const fp=footprintInfo(footprintOf(mem));
+  const fpPts=fp.label==="REGIONAL"?25:fp.label==="NATIONAL"?17:fp.label==="SPRAWLING"?8:0;
+  const charter=mem.filter(s=>s.orig===S.player).length/mem.length;
+  let soul=(avgMood/95)*40+fpPts+charter*20+Math.max(0,15-S.expels*5)-(c.slWin?20:0)+(S.slBusted?10:0)-(c.concordat?10:0)+(S.restored?15:0);
+  return Math.max(0,Math.min(100,Math.round(soul)));
+}
+function finalScore(){
+  const c=S.confs[S.player];
+  if(c.dead)return {grade:"F",score:0,dead:true,soul:0,soulGrade:"—"};
+  const alive=ALLC.filter(id=>!S.confs[id].dead);
+  const avgRank=S.ranks.length?S.ranks.reduce((a,b)=>a+b,0)/S.ranks.length:alive.length;
+  const maxPay=Math.max(...alive.map(id=>payoutOf(S,id)),1);
+  const myPay=payoutOf(S,S.player);
+  const brandRatio=Math.min(1.4,confBrand(S,S.player)/Math.max(1,S.brandStart));
+  const climbPts=Math.max(0,Math.min(18,(S.startRank-avgRank)*5));   // underdogs get graded on the climb
+  const rankPts=40*(1-(avgRank-1)/Math.max(1,alive.length-1));
+  const payPts=28*(myPay/maxPay);
+  const brandPts=14*(brandRatio/1.4);
+  const titlePts=Math.min(8,S.titles*2);
+  const slPts=c.slWin?8:0;
+  const bustPts=S.slBusted?6:0;
+  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts));
+  const grade=letterOf(score);
+  const soul=soulScore();
+  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,soul,soulGrade:letterOf(soul)};
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+const SVGNS="http://www.w3.org/2000/svg";
+function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+function eraName(y){return y<1992?"THE OLD WORLD":y<1998?"THE GREAT SHUFFLE":y<2014?"BCS ERA":y<2024?"PLAYOFF ERA":y<2030?"12-TEAM ERA":"SUPER LEAGUE ERA";}
+const confHex=cid=>S.confs[cid]?S.confs[cid].hex:"#7b8fa8";
+
+function buildMapBase(){
+  const svg=$("map");svg.innerHTML="";
+  const d="M"+OUTLINE.map(p=>proj(p[0],p[1]).map(v=>v.toFixed(1)).join(",")).join(" L")+" Z";
+  svg.appendChild(el("path",{d,fill:"#0d1a2e",stroke:"#24466e",["stroke-width"]:1.4,["stroke-linejoin"]:"round"}));
+  // faint grid
+  for(let x=100;x<980;x+=110)svg.appendChild(el("line",{x1:x,y1:0,x2:x,y2:600,stroke:"#12233c",["stroke-width"]:0.6}));
+  for(let y=80;y<600;y+=100)svg.appendChild(el("line",{x1:0,y1:y,x2:980,y2:y,stroke:"#12233c",["stroke-width"]:0.6}));
+  const h=el("g",{id:"hulls"});svg.appendChild(h);
+  const g=el("g",{id:"dots"});svg.appendChild(g);
+}
+function convexHull(pts){
+  pts=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[];for(const p of pts){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+function highlightConf(cid){
+  const hg=$("map").querySelector("#hulls");hg.innerHTML="";
+  if(!cid){ $("map").querySelectorAll("#dots circle.dot").forEach(c=>c.setAttribute("opacity",c.dataset.base)); return; }
+  const pts=members(S,cid).map(s=>proj(s.lat,s.lon));
+  if(pts.length>=3){
+    const hp=convexHull(pts).map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" ");
+    hg.appendChild(el("polygon",{points:hp,fill:confHex(cid),opacity:0.10,stroke:confHex(cid),
+      ["stroke-width"]:1.2,["stroke-dasharray"]:"5 4","stroke-opacity":0.55,["stroke-linejoin"]:"round"}));
+  }
+  $("map").querySelectorAll("#dots circle.dot").forEach(c=>{
+    c.setAttribute("opacity",c.dataset.conf===cid?1:0.10);
+  });
+}
+const lum=hex=>{const n=parseInt(hex.slice(1),16);return (0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;};
+const inkFor=s=>lum(s.color)>0.28?s.color:"#e6eefc";
+let mapMode="all";
+function drawDots(){
+  const g=$("map").querySelector("#dots");g.innerHTML="";
+  const tip=$("tip"), wrap=$("mapPanel");
+  const sorted=[...S.schools].sort((a,b)=>b.brand-a.brand); // draw big bubbles first so small ones stay clickable on top
+  for(const s of sorted){
+    const [x,y]=proj(s.lat,s.lon);
+    // bubble chart: program size IS the bubble size
+    const r=2.6+Math.pow(Math.max(0,s.brand-34)/62,1.3)*10.5;
+    const mine=s.conf===S.player;
+    const ghost=!mine&&((mapMode==="p"&&isG5(s.conf))||(mapMode==="g"&&!isG5(s.conf)));
+    if(mine&&!ghost){ // white halo marks your league
+      const h=el("circle",{cx:x,cy:y,r:r+3.2,fill:"none",stroke:"#eafffb",["stroke-width"]:1.2,opacity:0.85,class:"halo"});
+      h.dataset.r=r+3.2;h.dataset.sw=1.2;h.style.pointerEvents="none";g.appendChild(h);
+    }
+    const sw=1.3+r*0.1;
+    const c=el("circle",{cx:x,cy:y,r,fill:s.color,class:"dot",
+      stroke:confHex(s.conf),["stroke-width"]:sw,opacity:ghost?0.09:(s.conf==="g5"?0.85:0.96)});
+    c.dataset.r=r;c.dataset.sw=sw;c.dataset.conf=s.conf;c.dataset.base=ghost?0.09:(s.conf==="g5"?0.85:0.96);
+    if(ghost)c.style.pointerEvents="none";
+    c.addEventListener("mousemove",ev=>{
+      const b=wrap.getBoundingClientRect();
+      tip.style.display="block";
+      let tx=ev.clientX-b.left+14, ty=ev.clientY-b.top+10;
+      if(tx>b.width-200)tx-=215; if(ty>b.height-150)ty-=140;
+      tip.style.left=tx+"px";tip.style.top=ty+"px";
+      const cn=S.confs[s.conf]?S.confs[s.conf].name:"Independent";
+      tip.innerHTML=`<div class="t" style="color:${inkFor(s)}">${s.name}</div><div class="c" style="color:${confHex(s.conf)}">${cn}</div>
+        <div class="row"><span>Brand</span><span>${Math.round(s.brand)}</span></div>
+        <div class="row"><span>Est. value</span><span style="color:var(--gold)">${fmtM(programValue(S,s))}</span></div>
+        <div class="row"><span>Payout</span><span>${fmtM(payoutOf(S,s.conf))}/yr</span></div>
+        <div class="row"><span>Mood</span><span style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}</span></div>`;
+    });
+    c.addEventListener("mouseleave",()=>tip.style.display="none");
+    c.addEventListener("click",()=>{ if(dragMoved||S.over)return; if(s.conf===S.player)memberModal(s); else if(s.conf!=="sl")courtModal(s); });
+    g.appendChild(c);
+    if(!ghost){
+      const t=el("text",{x,y:y-r-4,fill:"#9db4d6","font-size":9,"font-weight":700,"text-anchor":"middle"});
+      t.textContent=s.abbr;t.dataset.cy=y;t.dataset.r=r;t.dataset.always=s.brand>=82?"1":"0";
+      t.style.pointerEvents="none";g.appendChild(t);
+    }
+  }
+  applyView();
+}
+
+/* ---------- map zoom & pan ---------- */
+let view={x:0,y:0,w:980,h:600}, dragMoved=false;
+function clampView(){
+  view.w=Math.max(170,Math.min(980,view.w)); view.h=view.w*600/980;
+  view.x=Math.max(-30,Math.min(1010-view.w,view.x));
+  view.y=Math.max(-20,Math.min(620-view.h,view.y));
+}
+function applyView(){
+  clampView();
+  $("map").setAttribute("viewBox",`${view.x} ${view.y} ${view.w} ${view.h}`);
+  const k=view.w/980, rk=Math.pow(k,0.55), tk=Math.pow(k,0.75);
+  const dots=$("map").querySelectorAll("#dots circle");
+  dots.forEach(c=>{c.setAttribute("r",(+c.dataset.r)*rk);c.setAttribute("stroke-width",(+c.dataset.sw)*Math.pow(k,0.7));});
+  $("map").querySelectorAll("#dots text").forEach(t=>{
+    t.setAttribute("font-size",Math.max(3.2,9*tk));
+    t.setAttribute("y",(+t.dataset.cy)-(+t.dataset.r)*rk-4*tk);
+    t.style.display=(t.dataset.always==="1"||k<0.56)?"block":"none";
+  });
+}
+function svgPt(ev){const svg=$("map");const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+function zoomAt(px,py,f){
+  const w=Math.max(170,Math.min(980,view.w/f));
+  view.x=px-(px-view.x)*(w/view.w); view.y=py-(py-view.y)*(w/view.w); view.w=w;
+  applyView();
+}
+function initMapNav(){
+  const svg=$("map");
+  svg.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e);zoomAt(p.x,p.y,e.deltaY<0?1.2:1/1.2);},{passive:false});
+  svg.addEventListener("dblclick",e=>{const p=svgPt(e);zoomAt(p.x,p.y,1.6);});
+  let st=null;
+  svg.addEventListener("mousedown",e=>{st={cx:e.clientX,cy:e.clientY,vx:view.x,vy:view.y,a:svg.getScreenCTM().a};dragMoved=false;svg.classList.add("dragging");});
+  window.addEventListener("mousemove",e=>{
+    if(!st)return;
+    const dx=e.clientX-st.cx, dy=e.clientY-st.cy;
+    if(Math.abs(dx)+Math.abs(dy)>4)dragMoved=true;
+    if(dragMoved){view.x=st.vx-dx/st.a;view.y=st.vy-dy/st.a;applyView();}
+  });
+  window.addEventListener("mouseup",()=>{st=null;svg.classList.remove("dragging");setTimeout(()=>dragMoved=false,0);});
+  $("zIn").addEventListener("click",()=>zoomAt(view.x+view.w/2,view.y+view.h/2,1.35));
+  $("zOut").addEventListener("click",()=>zoomAt(view.x+view.w/2,view.y+view.h/2,1/1.35));
+  $("zReset").addEventListener("click",()=>{view={x:0,y:0,w:980,h:600};applyView();});
+}
+function drawLegend(){
+  const lg=$("legend");lg.innerHTML="";
+  const hint=document.createElement("div");hint.className="lg";
+  hint.innerHTML=`<span style="letter-spacing:0">fill = school colors · ring = conference</span>`;
+  lg.appendChild(hint);
+  const ids=[...ALLC.filter(id=>!S.confs[id].dead&&(mapMode!=="p"||!isG5(id))&&(mapMode!=="g"||isG5(id))),...(S.confs.sl&&!S.confs.sl.dead&&mapMode!=="g"?["sl"]:[]),"g5"];
+  for(const id of ids){
+    const d=document.createElement("div");d.className="lg";d.style.cursor="pointer";
+    d.innerHTML=`<i style="background:${confHex(id)}"></i>${S.confs[id].name}`;
+    d.title="hover to see their territory · click for the full roster";
+    d.addEventListener("mouseenter",()=>highlightConf(id));
+    d.addEventListener("mouseleave",()=>highlightConf(null));
+    d.addEventListener("click",()=>confModal(id));
+    lg.appendChild(d);
+  }
+}
+function confModal(cid){
+  const c=S.confs[cid];
+  if(!c||c.dead)return;
+  highlightConf(null);
+  const mem=members(S,cid).sort((a,b)=>b.brand-a.brand);
+  if(!mem.length)return;
+  const fp=footprintInfo(footprintOf(mem));
+  const pay=payoutOf(S,cid), mine=cid===S.player;
+  const rows=mem.map(s=>{
+    const mc=s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)";
+    return `<div class="mem" data-sid="${s.id}" title="${mine?"manage":"court"} ${s.name}">
+      <span class="ab" style="color:${inkFor(s)}">${s.abbr}</span>
+      <span class="nm">${s.name}${S.champs[s.abbr]?" · 🏆×"+S.champs[s.abbr]:""}${s.aau?" · AAU":""}</span>
+      <span class="br">${Math.round(s.brand)}</span>
+      <div class="mood"><i style="width:${s.mood}%;background:${mc}"></i></div></div>`;
+  }).join("");
+  showModal(`<h2 style="color:${confHex(cid)}">${c.name}${c.wounded>S.year?' <span style="font-size:12px;color:var(--red);letter-spacing:1px">🩸 BLEEDING — members +15 to leave</span>':""}</h2>
+    <div class="sub">${mem.length} schools · est. footprint: <b style="color:${fp.col}">${fp.label}</b> <span style="color:var(--dim)">(${fp.note})</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <div class="stat"><div class="k">Payout</div><div class="v" style="font-size:14px">${fmtM(pay)}</div><div class="s">per school</div></div>
+      <div class="stat"><div class="k">TV Deal</div><div class="v" style="font-size:14px">${fmtM(c.tv.rate)}</div><div class="s">expires ${c.tv.expires}${c.network?" · 📺":""}</div></div>
+      <div class="stat"><div class="k">Exit Fee</div><div class="v" style="font-size:14px">${fmtM(c.exitFee)}</div><div class="s">${(c.chest||0)>=1?"chest: "+fmtM(c.chest):"per defector"}</div></div>
+      <div class="stat"><div class="k">League Value</div><div class="v" style="font-size:14px;color:var(--gold)">${fmtM(confValue(S,cid))}</div><div class="s">avg brand ${Math.round(prestige(S,cid))}</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:320px;overflow-y:auto">${rows}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Close</button></div>`);
+  $("modal").querySelectorAll("[data-sid]").forEach(elm=>{
+    elm.addEventListener("click",()=>{
+      const s=S.schools[+elm.dataset.sid];
+      if(s.conf===S.player)memberModal(s);
+      else if(s.conf!=="sl")courtModal(s);
+    });
+  });
+}
+
+/* ---------- panels ---------- */
+function renderTop(){
+  const c=S.confs[S.player];
+  $("uiYear").textContent=S.year;
+  $("uiConf").textContent=c.name;
+  $("uiConf").style.color=c.hex;
+  $("uiPayout").textContent=fmtM(payoutOf(S,S.player));
+  $("uiAP").textContent=S.ap;
+  $("uiEra").textContent=eraName(S.year);
+  const alive=ALLC.filter(id=>!S.confs[id].dead).sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
+  const rk=alive.indexOf(S.player)+1;
+  $("uiRank").textContent=rk?("#"+rk):"—";
+  $("btnAdvance").textContent=S.year>=S.endYear-1?"FINAL SEASON ▸":"ADVANCE SEASON ▸";
+}
+function renderOffice(){
+  const c=S.confs[S.player];
+  $("uiTv").textContent=fmtM(c.tv.rate)+"/yr";
+  $("uiTvNet").textContent=c.network?"+ conference network 📺":"no network";
+  $("uiExit").textContent=fmtM(c.exitFee);
+  const exitSub=document.querySelector("#uiExit + .s")||$("uiExit").parentElement.querySelector(".s");
+  if(exitSub)exitSub.textContent=(c.chest||0)>=1?("war chest: "+fmtM(c.chest)):"per defector";
+  const left=Math.max(0,c.tv.expires-S.year);
+  $("uiTvYears").textContent=left<=0?"EXPIRED — renegotiate":("expires "+c.tv.expires);
+  $("uiTvBar").style.width=Math.min(100,(left/Math.max(1,c.tv.len))*100)+"%";
+  $("uiTvBar").style.background=left<=1?"var(--red)":left<=2?"var(--gold)":"var(--teal)";
+  const fp=footprintInfo(footprintOf(members(S,S.player)));
+  $("uiFoot").textContent=fp.label;$("uiFoot").style.color=fp.col;
+  $("uiFootNote").textContent=fp.mult===1?"no modifier":(fp.mult>1?"+":"")+Math.round((fp.mult-1)*100)+"% media";
+  const myVal=confValue(S,S.player);
+  const valRank=[...(S.confs.sl?["sl"]:[]),...ALLC.filter(id=>!S.confs[id].dead)]
+    .sort((a,b)=>confValue(S,b)-confValue(S,a)).indexOf(S.player)+1;
+  $("uiVal").textContent=fmtM(myVal);
+  $("uiValNote").textContent="#"+valRank+" richest league · drives your media rate";
+}
+function renderMembers(){
+  const list=$("memberList");list.innerHTML="";
+  const mem=members(S,S.player).sort((a,b)=>b.brand-a.brand);
+  $("uiMemCount").textContent=mem.length+" schools";
+  for(const s of mem){
+    const d=document.createElement("div");d.className="mem";
+    const mc=s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)";
+    d.innerHTML=`<span class="ab" style="color:${inkFor(s)}">${s.abbr}</span><span class="nm">${s.name}</span>
+      <span class="br">${Math.round(s.brand)}</span>
+      <div class="mood"><i style="width:${s.mood}%;background:${mc}"></i></div>`;
+    d.title=`${s.name} — mood ${Math.round(s.mood)}`;
+    d.addEventListener("click",()=>memberModal(s));
+    list.appendChild(d);
+  }
+}
+function renderStandings(){
+  const t=$("standTable");t.innerHTML="";
+  const ids=[...(S.confs.sl&&!S.confs.sl.dead?["sl"]:[]),...ALLC.filter(id=>!S.confs[id].dead)]
+    .sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
+  const max=Math.max(...ids.map(id=>payoutOf(S,id)),1);
+  ids.forEach((id,i)=>{
+    const c=S.confs[id],pay=payoutOf(S,id),m=members(S,id).length;
+    const tr=document.createElement("tr");
+    if(id===S.player)tr.className="me";
+    tr.style.cursor="pointer";tr.title="click for roster · hover to see territory";
+    tr.innerHTML=`<td style="width:18px;color:var(--dim)">${i+1}</td>
+      <td class="cn" style="color:${c.hex}">${c.name}${c.network?" 📺":""}${c.wounded>S.year?" 🩸":""}</td>
+      <td style="color:var(--dim)">${m} schools</td>
+      <td style="text-align:right;font-weight:700">${fmtM(pay)}<span style="color:var(--dim);font-weight:400">/school</span></td>
+      <td class="payBar"><div class="bar"><i style="width:${(pay/max)*100}%;background:${c.hex}"></i></div></td>`;
+    tr.addEventListener("mouseenter",()=>highlightConf(id));
+    tr.addEventListener("mouseleave",()=>highlightConf(null));
+    tr.addEventListener("click",()=>confModal(id));
+    t.appendChild(tr);
+  });
+}
+function renderActions(){
+  const b=$("actionsBody");b.innerHTML="";
+  const c=S.confs[S.player];
+  const fcsReady=isG5(S.player)&&S.fcsUsed.length<FCS_POOL.length;
+  const mem=members(S,S.player);
+  const avgMood=mem.length?mem.reduce((a,s)=>a+s.mood,0)/mem.length:0;
+  const gorActive=c.gorLabel&&c.gorLabel>S.year;
+  const acts=[
+    {ic:"🎯",tt:"Court a school",td:"Pitch an outsider on joining you",ap:1,ok:canAct(S,1),fn:targetPicker},
+    {ic:"⛏",tt:"Promote an FCS program",td:!isG5(S.player)?"G5 leagues only — the powers don't shop in the FCS, they shop in the G5":(fcsReady?"See this year's crop of 5 scouted risers · one call-up per offseason":"The FCS well is dry"),ap:2,ok:isG5(S.player)&&canAct(S,2)&&fcsReady&&S.year-S.lastFcs>=1,fn:fcsPicker},
+    {ic:"🏗",tt:"Invest in a program",td:"Grow a member's brand +2/yr for 3 yrs (−2% rev, 2 yrs)",ap:1,ok:canAct(S,1),fn:investPicker},
+    {ic:"🤝",tt:"Retention package",td:"Shore up a restless member",ap:1,ok:canAct(S,1),fn:retainPicker},
+    {ic:"🔒",tt:"Grant of Rights",td:gorActive?"Locked through "+c.gorLabel:avgMood>=60?"Lock everyone's rights for 8 yrs (needs happy league)":"Needs avg mood 60+ (now "+Math.round(avgMood)+")",ap:1,ok:canAct(S,1)&&!gorActive&&avgMood>=60,fn:()=>{playerGor(S);renderAll();}},
+    {ic:"🏟",tt:"Title game",td:c.ccg?"Playing every December":mem.length>=8?"Permanent +4% media revenue":"Needs 8+ members",ap:1,ok:canAct(S,1)&&!c.ccg&&mem.length>=8,fn:()=>{playerCcg(S);renderAll();}},
+    ...((S.confs.sl&&!S.confs.sl.dead&&!c.slWin&&!c.concordat)?[
+      {ic:"⚔️",tt:"Fund the antitrust war",td:"Case "+((S.slCase||0).toFixed(1))+"/3 — busts them if they're still under 8 members",ap:1,ok:canAct(S,1),fn:()=>{playerSueSL(S);renderAll();}},
+      {ic:"🤝",tt:"Sign the Concordat",td:"Become their partner: +18% media forever, immunity — and a leash",ap:2,ok:canAct(S,2),fn:()=>{playerConcordat(S);renderAll();}}
+    ]:[]),
+    ...((!S.restored&&!c.concordat&&!c.slWin&&(S.slBusted||(!S.slFormed&&S.year>=2033)))?[(()=>{
+      const mem2=members(S,S.player);
+      const am=mem2.length?mem2.reduce((a,s)=>a+s.mood,0)/mem2.length:0;
+      const fp2=footprintInfo(footprintOf(mem2));
+      const ready=am>=65&&fp2.mult>=1;
+      return {ic:"🎓",tt:"Lead the Restoration",td:ready?"Sign the Scholarship Charter — give the sport back":"Needs a REGIONAL/NATIONAL footprint and 65+ avg mood (now "+Math.round(am)+", "+fp2.label+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerRestore(S);renderAll();}};
+    })()]:[]),
+    ...((S.year>=2030&&!S.confs.sl&&!c.slWin)?[(()=>{
+      const mine=top16(S).filter(s=>s.conf===S.player).length;
+      const aliveR=ALLC.filter(id=>!S.confs[id].dead).sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
+      const rk=aliveR.indexOf(S.player)+1;
+      const ready=mine>=5&&rk===1;
+      return {ic:"👑",tt:"Form the Super League",td:ready?"Declare the breakaway — you ARE the future (+30% media forever)":"Needs 5+ of the top-16 brands (have "+mine+") and the #1 payout (now #"+rk+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerFormSL(S);renderAll();}};
+    })()]:[]),
+    {ic:"⚖️",tt:"Raise exit fee",td:"+$20M — deters poachers, annoys members",ap:1,ok:canAct(S,1),fn:()=>{playerExitFee(S);renderAll();}},
+    {ic:"💸",tt:"Cut bonus checks",td:(c.chest||0)>=16?"Distribute the "+fmtM(c.chest)+" war chest — members +mood":"War chest too thin ("+fmtM(c.chest||0)+")",ap:1,ok:canAct(S,1)&&(c.chest||0)>=16,fn:()=>{playerBonus(S);renderAll();}},
+    {ic:"📺",tt:"Launch conference network",td:c.network?"Already on the air":"Multiply your media rate (2007+)",ap:2,ok:canAct(S,2)&&!c.network&&S.year>=2007,fn:()=>{playerNetwork(S);renderAll();}},
+    {ic:"💰",tt:"Renegotiate media deal",td:(c.tv.expires-S.year)<=2?"Go to market early":"Locked until "+(c.tv.expires-2)+"",ap:1,ok:canAct(S,1)&&(c.tv.expires-S.year)<=2,fn:()=>tvModal(false)}
+  ];
+  for(const a of acts){
+    const d=document.createElement("button");d.className="act";d.disabled=!a.ok;
+    d.innerHTML=`<span class="ic">${a.ic}</span><span class="tx"><span class="tt">${a.tt}</span><br><span class="td">${a.td}</span></span><span class="ap">${a.ap} AP</span>`;
+    d.addEventListener("click",a.fn);
+    b.appendChild(d);
+  }
+}
+function renderNews(){
+  const n=$("news");n.innerHTML="";
+  $("uiNewsCount").textContent=S.news.length+" stories";
+  for(const it of S.news.slice(0,70)){
+    const d=document.createElement("div");d.className="nw "+it.cls;
+    d.innerHTML=`<span class="yr">${it.yr}</span><span>${it.txt}</span>`;
+    n.appendChild(d);
+  }
+}
+function renderAll(){
+  S.schools.forEach(s=>{s.mood=Math.max(2,Math.min(98,s.mood));});  // event hits can briefly overshoot
+  renderTop();renderOffice();renderMembers();renderStandings();renderActions();renderNews();drawDots();drawLegend();autosave();
+}
+
+/* ---------- defection animation ---------- */
+function animateMoves(list){
+  if(!list||!list.length)return;
+  const svg=$("map"), ref=S;
+  list.slice(0,6).forEach((m,i)=>{
+    setTimeout(()=>{
+      if(S!==ref)return;  // a new game started mid-animation
+      const s=S?S.schools.find(x=>x.abbr===m.ab):null;if(!s)return;
+      const [x1,y1]=proj(s.lat,s.lon);
+      const ct=centroid(S,m.toId);const [x2,y2]=proj(ct[0],ct[1]);
+      const col=confHex(m.toId);
+      if(Math.hypot(x2-x1,y2-y1)>18){
+        const mx=(x1+x2)/2, my=(y1+y2)/2-Math.min(90,Math.hypot(x2-x1,y2-y1)*0.25);
+        const p=el("path",{d:`M${x1},${y1} Q${mx},${my} ${x2},${y2}`,stroke:col,class:"moveArc"});
+        svg.appendChild(p);setTimeout(()=>p.remove(),1800);
+      }
+      const pc=el("circle",{cx:x1,cy:y1,r:5,fill:"none",stroke:col,["stroke-width"]:2,class:"pulseC"});
+      svg.appendChild(pc);setTimeout(()=>pc.remove(),1000);
+    },i*260);
+  });
+}
+
+/* ---------- saves (guarded: silently memory-only where storage is unavailable) ---------- */
+const SAVE_KEY="confwars_save_v1";
+function storGet(){try{return localStorage.getItem(SAVE_KEY)}catch(e){return null}}
+function storSet(v){try{localStorage.setItem(SAVE_KEY,v)}catch(e){}}
+function storClear(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
+function autosave(){if(!S||S.over||S.queue.length)return;try{storSet(JSON.stringify(S))}catch(e){}}
+function loadSave(){try{const j=storGet();if(!j)return null;const d=JSON.parse(j);return d&&d.schools&&d.confs&&d.player?d:null}catch(e){return null}}
+function resumeGame(d){
+  S=d;rng=Math.random;view={x:0,y:0,w:980,h:600};
+  buildMapBase();renderAll();hideModal();
+  toast(`Back in the chair, Commissioner — ${S.year}, the ${S.confs[S.player].name}.`);
+}
+
+/* ---------- modal infra ---------- */
+function showModal(html){$("modal").innerHTML=html;$("shade").style.display="flex";}
+function hideModal(){$("shade").style.display="none";}
+let toastT=null;
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("on"),2600);}
+
+/* ---------- pickers + court ---------- */
+function targetPicker(){
+  const ct=centroid(S,S.player);
+  const cands=S.schools.filter(s=>s.conf!==S.player&&s.conf!=="sl")
+    .map(s=>({s,a:acceptChance(S,s,S.player)}))
+    .sort((a,b)=>(b.s.brand*0.6+b.s.market*0.4)-(a.s.brand*0.6+a.s.market*0.4)).slice(0,18);
+  let rows=cands.map(({s,a})=>{
+    const cool=S.year-s.lastCourt<2;
+    const oc=a.p>=60?"var(--green)":a.p>=35?"var(--gold)":"var(--red)";
+    return `<div class="mem" data-sid="${s.id}" style="${cool?"opacity:.45":""}">
+      <span class="ab" style="color:${inkFor(s)}">${s.abbr}</span><span class="nm">${s.name} · <span style="color:${confHex(s.conf)}">${S.confs[s.conf].name}</span></span>
+      <span class="br" style="width:58px;color:${oc};font-weight:800">${cool?"cooling":Math.round(a.p)+"%"}</span></div>`;
+  }).join("");
+  showModal(`<h2>Court a school</h2><div class="sub">Estimated odds they say yes. One pitch per school every two years.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto">${rows}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Cancel</button></div>`);
+  $("modal").querySelectorAll("[data-sid]").forEach(elm=>{
+    elm.addEventListener("click",()=>{
+      const s=S.schools[+elm.dataset.sid];
+      if(S.year-s.lastCourt<2){toast(s.name+" won't take your call yet.");return;}
+      courtModal(s);
+    });
+  });
+}
+function courtModal(s){
+  if(!canAct(S,1)){toast("No actions left this offseason.");return;}
+  if(S.year-s.lastCourt<2){toast(s.name+" won't take your call yet.");return;}
+  const render=(sweeten)=>{
+    const a=acceptChance(S,s,S.player,{sweeten});
+    const oc=a.p>=60?"var(--green)":a.p>=35?"var(--gold)":"var(--red)";
+    showModal(`<h2>Pitch ${s.name}</h2>
+      <div class="sub">Currently: <span style="color:${confHex(s.conf)};font-weight:700">${S.confs[s.conf].name}</span> · brand ${Math.round(s.brand)} · market ${s.market} · mood ${Math.round(s.mood)}</div>
+      <div class="odds" style="color:${oc}">${Math.round(a.p)}%</div><div class="oddsLbl">chance they accept</div>
+      <div class="mrow"><span>Their payout now</span><span>${fmtM(a.futFrom)}/yr</span></div>
+      <div class="mrow"><span>Your projected offer</span><span style="color:var(--teal)">${fmtM(a.futTo)}/yr</span></div>
+      <div class="mrow"><span>Money delta</span><span>${a.delta>=0?"+":""}${Math.round(a.delta*100)}%</span></div>
+      <div class="mrow"><span>Geography penalty <span style="color:var(--dim)">(fit ×${a.fitW} at ${a.toN} schools)</span></span><span>−${Math.round(a.distPen)}</span></div>
+      <div class="mrow"><span>Exit-fee deterrent</span><span>−${Math.round(a.exitDeter)}</span></div>
+      ${(()=>{const nf=footprintInfo(footprintOf(members(S,S.player).concat([s])));return `<div class="mrow"><span>Your footprint if they join</span><span style="color:${nf.col}">${nf.label}</span></div>`;})()}
+      ${s.ind?'<div class="mrow"><span>Independence streak</span><span>−35</span></div>':""}
+      ${s.gorUntil&&s.gorUntil>S.year?`<div class="mrow"><span>Grant of Rights (thru ${s.gorUntil})</span><span>−28</span></div>`:""}
+      ${s.grudge===S.player?'<div class="mrow"><span>They remember the expulsion</span><span>−40</span></div>':""}
+      <label class="tgl"><input type="checkbox" id="swT" ${sweeten?"checked":""}> Sweeten the deal <span style="color:var(--dim)">(+15% odds · paid from the war chest if funded, else 4% of revenue for 4 yrs)</span></label>
+      <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Walk away</button>
+      <button class="btn-cta" id="goCourt">MAKE THE CALL — 1 AP</button></div>`);
+    $("swT").addEventListener("change",e=>render(e.target.checked));
+    $("goCourt").addEventListener("click",()=>{
+      const ok=playerCourt(S,s,sweeten);
+      hideModal();renderAll();
+      if(ok)animateMoves([{ab:s.abbr,toId:S.player}]);
+      toast(ok?`${s.name} is IN. Welcome to the ${S.confs[S.player].name}.`:`${s.name} said no. Ouch.`);
+    });
+  };
+  render(false);
+}
+function fcsPicker(){
+  if(!S.fcsCrop)cropRefresh(S);
+  if(!S.fcsCrop){toast("The FCS well is dry.");return;}
+  const rows=S.fcsCrop.list.filter(e=>!S.fcsUsed.includes(e.abbr)).map(e=>{
+    const r=FCS_POOL.find(x=>x[0]===e.abbr);
+    return `<div class="mem" data-fcs="${e.abbr}">
+    <span class="ab" style="color:${lum(r[6])>0.28?r[6]:"#e6eefc"}">${e.abbr}</span>
+    <span class="nm">${r[1]}${e.hot?' <span style="color:var(--gold);font-weight:800">🔥 HOT PROSPECT</span>':""}</span>
+    <span class="br" style="width:96px">brand ${e.brand} · mkt ${r[5]}</span></div>`;
+  }).join("");
+  showModal(`<h2>⛏ This cycle's FCS crop</h2>
+    <div class="sub">Five risers scouted this cycle — form varies, and a fresh crop grows after every call-up. One promotion per offseason (2 AP). They join at 88 mood, hungry and loyal.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto">${rows}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Pass on this crop</button></div>`);
+  $("modal").querySelectorAll("[data-fcs]").forEach(elm=>{
+    elm.addEventListener("click",()=>{
+      const e=S.fcsCrop.list.find(x=>x.abbr===elm.dataset.fcs);
+      const row=FCS_POOL.find(r=>r[0]===elm.dataset.fcs);
+      playerPromote(S,row,e?e.brand:null);hideModal();renderAll();
+      toast(row[1]+" is FBS now — and they owe it all to you.");
+    });
+  });
+}
+function investPicker(){
+  const mem=members(S,S.player).sort((a,b)=>b.brand-a.brand);
+  const rows=mem.map(s=>{
+    const dev=s.devUntil&&s.devUntil>S.year;
+    return `<div class="mem" data-sid="${s.id}" style="${dev?"opacity:.45":""}">
+    <span class="ab" style="color:${inkFor(s)}">${s.abbr}</span><span class="nm">${s.name}</span>
+    <span class="br" style="width:80px">${dev?"building…":"brand "+Math.round(s.brand)}</span></div>`;
+  }).join("");
+  showModal(`<h2>🏗 Invest in a program</h2><div class="sub">+2 brand per year for 3 years, +6 mood now · costs 2% of league revenue for 2 yrs. Build your own blue-blood.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto">${rows}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Cancel</button></div>`);
+  $("modal").querySelectorAll("[data-sid]").forEach(elm=>{
+    elm.addEventListener("click",()=>{
+      const s=S.schools[+elm.dataset.sid];
+      if(s.devUntil&&s.devUntil>S.year){toast(s.name+" already has cranes on campus.");return;}
+      playerInvest(S,s);hideModal();renderAll();
+    });
+  });
+}
+function retainPicker(){
+  const mem=members(S,S.player).sort((a,b)=>a.mood-b.mood);
+  const rows=mem.map(s=>`<div class="mem" data-sid="${s.id}">
+    <span class="ab">${s.abbr}</span><span class="nm">${s.name}</span>
+    <span class="br" style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}</span></div>`).join("");
+  showModal(`<h2>Retention package</h2><div class="sub">+16 mood for one member · costs 2% of league revenue for 2 yrs. Unhappiest first.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto">${rows}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Cancel</button></div>`);
+  $("modal").querySelectorAll("[data-sid]").forEach(elm=>{
+    elm.addEventListener("click",()=>{playerRetain(S,S.schools[+elm.dataset.sid]);hideModal();renderAll();});
+  });
+}
+function memberModal(s){
+  const a=canAct(S,1), canExpel=a&&members(S,S.player).length>6;
+  showModal(`<h2>${s.name}</h2><div class="sub">${S.confs[S.player].name} member · charter: ${CONF_META[s.orig].name}</div>
+    <div class="mrow"><span>Brand power</span><span>${Math.round(s.brand)}</span></div>
+    <div class="mrow"><span>Franchise value</span><span style="color:var(--gold)">${fmtM(programValue(S,s))}</span></div>
+    <div class="mrow"><span>TV market</span><span>${s.market}</span></div>
+    <div class="mrow"><span>Mood</span><span style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)} / 100</span></div>
+    <div class="mrow"><span>Academic (AAU)</span><span>${s.aau?"Yes":"No"}</span></div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Close</button>
+    <button class="btn-red" id="doExp" ${canExpel?"":"disabled"} title="${members(S,S.player).length<=6?"Can't drop below 6 members":""}">EXPEL — 1 AP</button>
+    <button class="btn-gold" id="doRet" ${a?"":"disabled"}>RETENTION — 1 AP</button></div>`);
+  $("doRet").addEventListener("click",()=>{playerRetain(S,s);hideModal();renderAll();});
+  $("doExp").addEventListener("click",()=>{
+    showModal(`<h2>Expel ${s.name}?</h2><div class="sub">the nuclear option</div>
+      <div class="body">Payout per school rises immediately — but every remaining member loses 8 mood, and ${s.name} will <b>never forgive you</b> (−40 to ever rejoin).</div>
+      <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Back off</button>
+      <button class="btn-red" id="confExp">DO IT — 1 AP</button></div>`);
+    $("confExp").addEventListener("click",()=>{playerExpel(S,s);hideModal();renderAll();toast(s.name+" is out. Cold-blooded.");});
+  });
+}
+function tvModal(forced){
+  const mv=mediaValue(S,S.player);
+  const deal=(len,mod,tag,note)=>`<div class="pick" data-len="${len}" data-mod="${mod}">
+    <div class="nm">${len}-year deal <span style="color:var(--teal)">${fmtM(mv*mod)}/yr</span></div>
+    <div class="meta">${note}</div><div class="diff ${tag}">${tag.toUpperCase()}</div></div>`;
+  showModal(`<h2>${forced?"Your media deal has expired":"Renegotiate media rights"}</h2>
+    <div class="sub">Your league is worth <b style="color:var(--gold)">${fmtM(confValue(S,S.player))}</b> — networks pay ~5% of franchise value a year, so the market rate is <b style="color:var(--gold)">${fmtM(mv)}/yr</b>. Lock short and ride the market, or lock long and buy loyalty.</div>
+    <div class="pickGrid">
+      ${deal(4,1.06,"hard","Premium rate, but you're renegotiating constantly — no stability bonus.")}
+      ${deal(7,1.00,"med","Fair market. The default play.")}
+      ${deal(10,0.93,"easy","Discounted rate, but every member gets +6 mood from the certainty.")}
+    </div>
+    ${forced?"":'<div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Never mind</button></div>'}`);
+  $("modal").querySelectorAll("[data-len]").forEach(elm=>{
+    elm.addEventListener("click",()=>{
+      if(!forced)spendAP(S,1);
+      playerDeal(S,+elm.dataset.len,+elm.dataset.mod,+elm.dataset.len===10);
+      hideModal();
+      if(forced)runSeason(); else renderAll();
+    });
+  });
+}
+/* ---------- event modals ---------- */
+function choiceModal(spec,done){
+  const btns=spec.opts.map((o,i)=>
+    `<button class="${i===0?"btn-cta":"btn-ghost"}" data-oi="${i}">${o.label}<br><span class="kbd">${o.kbd}</span></button>`).join("");
+  showModal(`<h2>${spec.title}</h2><div class="sub">${spec.sub}</div>
+    <div class="body">${spec.body}</div><div class="btnRow">${btns}</div>`);
+  $("modal").querySelectorAll("[data-oi]").forEach(b=>b.addEventListener("click",()=>{
+    spec.opts[+b.dataset.oi].fn();hideModal();renderAll();done();
+  }));
+}
+function lhnModal(q,done){
+  showModal(`<h2>The Longhorn Problem</h2>
+    <div class="sub">2010 · Austin, TX</div>
+    <div class="body">Texas wants its own TV network — and ESPN is offering them $300M to do it. The rest of your league sees a golden calf being built in Austin.</div>
+    <div class="btnRow">
+      <button class="btn-gold" id="o1">LET TEXAS HAVE IT<br><span class="kbd">Texas +15 mood · everyone else −7</span></button>
+      <button id="o2">FORCE EQUAL REVENUE SHARING<br><span class="kbd">Texas −14 mood · everyone else +5</span></button>
+      <button class="btn-ghost" id="o3">LOOK THE OTHER WAY<br><span class="kbd">Texas −6 mood</span></button>
+    </div>`);
+  const fin=(fn,msg)=>{fn();news(S,msg,"event");log(S,"LHN decision");hideModal();done();};
+  $("o1").onclick=()=>fin(()=>{q.tex.mood+=15;members(S,"b12").forEach(m=>{if(m!==q.tex)m.mood-=7;});},"📡 You bless the Longhorn Network. Texas is thrilled. Nobody else is.");
+  $("o2").onclick=()=>fin(()=>{q.tex.mood-=14;members(S,"b12").forEach(m=>{if(m!==q.tex)m.mood+=5;});},"⚖ You force equal revenue sharing. The league cheers; Austin fumes.");
+  $("o3").onclick=()=>fin(()=>{q.tex.mood-=6;},"🫥 You stay out of the network fight. Resentment simmers.");
+}
+function secRaidModal(q,done){
+  const s=q.school;
+  const raider=S.confs[q.toId].name;
+  showModal(`<h2>🚨 The ${raider} comes for ${s.name}</h2>
+    <div class="sub">${S.year} · a leaked story breaks at the worst possible time</div>
+    <div class="body">The ${raider} has extended a formal invitation to <b>${s.name}</b>. Their board meets Friday. You have one move.</div>
+    <div class="btnRow">
+      <button class="btn-cta" id="r1">BREAK THE BANK<br><span class="kbd">−12% league revenue for 4 yrs · +25 mood · their odds −30</span></button>
+      <button class="btn-ghost" id="r2">STAND ON THE EXIT FEE<br><span class="kbd">let the roll decide</span></button>
+    </div>`);
+  const roll=(opt)=>{
+    const a=acceptChance(S,s,q.toId,opt);
+    if(rng()*100<a.p){moveSchool(S,s,q.toId,"the gravity was too strong");}
+    else{news(S,`🛡 <b>${s.name} stays.</b> The league lives to fight another day.`,"good");s.mood+=8;}
+    hideModal();done();
+  };
+  $("r1").onclick=()=>{payCost(S,0.12,4);s.mood+=25;log(S,"Broke the bank to keep "+s.abbr);roll({scripted:true,counter:true});};
+  $("r2").onclick=()=>roll({scripted:true});
+}
+function superLeagueModal(done){
+  const t16=top16(S);
+  const mine=t16.filter(s=>s.conf===S.player).length;
+  S.slFormed=true;S.slBirth=S.year;
+  // create the breakaway league
+  S.confs.sl={id:"sl",name:"Super League",hex:"#ffd700",color:"#ffd700",diff:null,blurb:"",
+    tv:{rate:mediaValue(S,"b1g")*1.6,expires:2099,len:99},exitFee:0,network:true,pen:[],dead:false,payout:0,hist:[],desperation:0,slWin:false,fought:0};
+  if(mine>=5){
+    S.confs[S.player].slWin=true;
+    showModal(`<h2>👑 You ARE the Super League</h2>
+      <div class="sub">2030 · the breakaway wants in with YOU</div>
+      <div class="body">You control <b>${mine} of the top 16 brands</b> in the sport. The breakaway organizers can't build it without you — so they build it around you. Media rate up 30%, permanently.</div>
+      <div class="btnRow"><button class="btn-cta" id="slk">TAKE THE THRONE</button></div>`);
+    $("slk").onclick=()=>{news(S,"👑 <b>Your league becomes the spine of the Super League.</b> Everyone else fights for scraps.","good");log(S,"Became the Super League");hideModal();done();};
+  } else {
+    showModal(`<h2>⚡ The Super League Ultimatum</h2>
+      <div class="sub">2030 · a private-equity-backed breakaway targets the top 16 brands</div>
+      <div class="body">Sixteen blue-bloods are invited to a breakaway "Super League" — including <b>${mine}</b> of yours. Restless members will start defecting each season.</div>
+      <div class="btnRow">
+        <button class="btn-cta" id="s1">FIGHT IT<br><span class="kbd">+8 mood all members · rivals frozen 2 yrs · your top brands protected 3 yrs</span></button>
+        <button class="btn-ghost" id="s2">LET HISTORY HAPPEN<br><span class="kbd">hold on tight</span></button>
+      </div>`);
+    $("s1").onclick=()=>{S.confs[S.player].fought=S.year+3;S.aiBlock=2;members(S,S.player).forEach(m=>m.mood+=8);
+      news(S,"✊ You organize the resistance. Lawsuits fly; the breakaway slows.","good");log(S,"Fought the Super League");hideModal();done();};
+    $("s2").onclick=()=>{news(S,"⚡ The Super League begins signing blue-bloods.","poach");log(S,"Let the Super League form");hideModal();done();};
+  }
+}
+/* ---------- pick + end ---------- */
+const ERA_OPENERS={
+ 1989:[`It's 1989. The Southwest Conference is a bribery scandal with a football problem, half the East Coast plays as independents, and TV money is about to remake everything.`,
+       `Notre Dame just signed its own network deal. Every league office in America took notes.`],
+ 1999:[`It's 1999. The BCS is new, the Big 12 is three years old, and the Mountain West just proved leagues can split overnight.`,
+       `The Big East is loaded — Miami, VT, Syracuse. The ACC has noticed.`],
+ 2005:[`The ACC's raid of the Big East (Miami, VT, BC) has every league on edge. The map is not settled.`],
+ 2026:[`It's 2026. The great consolidation is over: two superpowers, a rebuilt Pac-12, and everyone else doing math.`,
+       `There is no script anymore. Whatever happens next, the sport is doing it to itself — starting with you.`]
+};
+function startGame(confId,daily,era){
+  S=newState(confId,era);
+  if(daily)S.daily=daily;
+  const c=S.confs[S.player];
+  if(daily)news(S,`🎲 <b>DAILY CHALLENGE ${daily}:</b> everyone plays the ${c.name} from ${S.startYear} today. Same timeline, same chaos — outscore your friends.`,"good");
+  for(const line of [...(ERA_OPENERS[S.startYear]||[])].reverse())news(S,line,"event");
+  news(S,`You take office as commissioner of the <b>${c.name}</b>. The board expects results.`,"good");
+  if(isG5(S.player))news(S,`Your league lives in the sport's basement — for now. Build brands, survive the raids, and climb.`,"event");
+  view={x:0,y:0,w:980,h:600};
+  buildMapBase();renderAll();hideModal();
+  toast(`Good luck, Commissioner. ${S.startYear}–${S.endYear}.`);
+  showCoach();
+}
+function showCoach(){
+  let seen=false;
+  try{seen=!!localStorage.getItem("confwars_coach");}catch(e){}
+  if(seen||$("coach"))return;
+  const d=document.createElement("div");
+  d.id="coach";
+  d.innerHTML=`<span class="x" id="coachX">✕</span><b>QUICK START</b><br>
+    ① Click any bubble — pitch outsiders, manage your own<br>
+    ② Poach right before your TV deal expires, then re-sign rich<br>
+    ③ Watch <b>The Wire</b> — rumors telegraph raids a year early<br>
+    ④ Drop under 6 schools and your league <b>dies</b>`;
+  $("mapPanel").appendChild(d);
+  const dismiss=()=>{d.remove();try{localStorage.setItem("confwars_coach","1");}catch(e){}};
+  d.querySelector("#coachX").addEventListener("click",dismiss);
+  setTimeout(()=>{if(document.getElementById("coach"))dismiss();},45000);
+}
+(function mobNote(){
+  try{
+    if(window.matchMedia&&matchMedia("(max-width:920px)").matches){
+      const n=document.createElement("div");
+      n.id="mobNote";
+      n.innerHTML=`<span class="x" id="mobX">✕</span>📱 Dense sim ahead — pan around, pinch to zoom the page, best on desktop or landscape.`;
+      document.body.appendChild(n);
+      n.querySelector("#mobX").addEventListener("click",()=>n.remove());
+      setTimeout(()=>{const e=document.getElementById("mobNote");if(e)e.remove();},12000);
+    }
+  }catch(e){}
+})();
+let pickEra=2005;
+function playableAt(era){
+  rng=Math.random;
+  const tmp=newState("b1g",era);
+  return {tmp, list:ALLC.filter(id=>!tmp.confs[id].dead&&tmp.schools.some(s=>s.conf===id))};
+}
+function showPick(){
+  rng=Math.random;
+  const {tmp,list}=playableAt(pickEra);
+  const card=id=>{
+    const m=CONF_META[id];
+    const fl=ERAS[pickEra].flavor&&ERAS[pickEra].flavor[id];
+    const mem=tmp.schools.filter(s=>s.conf===id);
+    const flag=[...mem].sort((a,b)=>b.brand-a.brand)[0];
+    const pay=tmp.confs[id].tv.rate/mem.length;
+    const dl=m.diff==="med"?"MEDIUM":m.diff==="ext"?"EXTREME":m.diff.toUpperCase();
+    return `<div class="pick" data-c="${id}">
+      <div class="nm"><i style="background:${m.hex}"></i>${tmp.confs[id].name}</div>
+      <div class="meta">${mem.length} schools · ${fmtM(pay)}/school · flagship: ${flag.name}<br>${(fl&&fl.blurb)||m.blurb}</div>
+      <div class="diff ${m.diff}">${dl}</div></div>`;
+  };
+  const eraCard=e=>`<div class="pick" data-era="${e}" style="${e===pickEra?"border-color:var(--teal);box-shadow:0 0 14px #14b8a633":""}">
+      <div class="nm" style="font-size:13px">${ERAS[e].label}</div>
+      <div class="meta">${ERAS[e].sub}</div></div>`;
+  const p5s=list.filter(id=>!isG5(id)), g5s=list.filter(id=>isG5(id));
+  const sv=loadSave();
+  showModal(`<h2>CONFERENCE <span style="color:var(--teal)">WARS</span></h2>
+    <div class="sub">Pick your era, pick your league. Thirty seasons of TV money, poaching, and betrayal — <b>survive and finish on top.</b></div>
+    ${sv?`<button class="btn-cta" id="resumeBtn" style="width:100%;margin:4px 0 8px;padding:12px">▶ RESUME — the ${sv.confs[sv.player].name}, ${sv.year}${sv.daily?" · 🎲 daily":""}</button>`:""}
+    <div class="pickGrid" style="grid-template-columns:1fr 1fr">${[1989,1999,2005,2026].map(eraCard).join("")}</div>
+    <button class="btn-gold" id="dailyBtn" style="width:100%;margin-top:12px;padding:12px">🎲 DAILY CHALLENGE — same era + league for everyone today</button>
+    <div class="secLbl">The Power Conferences</div>
+    <div class="pickGrid">${p5s.map(card).join("")}</div>
+    <div class="secLbl">Underdog Mode — graded on the climb</div>
+    <div class="pickGrid">${g5s.map(card).join("")}</div>
+    <div class="kbd" style="margin-top:14px;text-align:center;opacity:.75">v1.0 · a fan-made simulation — school and conference names are used for identification only; not affiliated with or endorsed by any university, conference, or the NCAA</div>`);
+  if(sv)$("resumeBtn").addEventListener("click",()=>resumeGame(sv));
+  $("modal").querySelectorAll("[data-era]").forEach(elm=>{
+    elm.addEventListener("click",()=>{pickEra=+elm.dataset.era;showPick();});
+  });
+  $("dailyBtn").addEventListener("click",()=>{
+    const d=new Date();
+    const seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+    rng=mulberry32(seed);
+    const era=[1989,1999,2005,2026][Math.floor(rng()*4)];
+    const dl=playableAt(era).list;
+    rng=mulberry32(seed+7);
+    const confId=dl[Math.floor(rng()*dl.length)];
+    startGame(confId,(d.getMonth()+1)+"/"+d.getDate()+"/"+d.getFullYear(),era);
+  });
+  $("modal").querySelectorAll("[data-c]").forEach(elm=>{
+    elm.addEventListener("click",()=>{rng=Math.random;startGame(elm.dataset.c,null,pickEra);});
+  });
+}
+function richModal(){
+  if(!S)return;
+  const vals=S.schools.map(s=>({s,v:programValue(S,s)})).sort((a,b)=>b.v-a.v);
+  const myTop=vals.findIndex(x=>x.s.conf===S.player);
+  const rows=vals.slice(0,20).map((x,i)=>{
+    const mine=x.s.conf===S.player;
+    return `<div class="mrow" style="${mine?"background:#14b8a611;border-radius:6px;padding-left:6px":""}">
+      <span><span style="color:var(--dim);display:inline-block;width:22px">${i+1}</span>
+      <b style="color:${inkFor(x.s)}">${x.s.abbr}</b> <span style="color:var(--dim)">${x.s.name}</span>
+      <i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${confHex(x.s.conf)};margin-left:4px"></i></span>
+      <span style="color:var(--gold)">${fmtM(x.v)}</span></div>`;
+  }).join("");
+  const cids=[...(S.confs.sl?["sl"]:[]),...ALLC.filter(id=>!S.confs[id].dead)]
+    .map(id=>({id,v:confValue(S,id)})).sort((a,b)=>b.v-a.v);
+  const maxCv=cids[0]?cids[0].v:1;
+  const crow=cids.map((x,i)=>`<div class="mrow" style="${x.id===S.player?"background:#14b8a611;border-radius:6px;padding-left:6px":""}">
+      <span><span style="color:var(--dim);display:inline-block;width:22px">${i+1}</span><b style="color:${confHex(x.id)}">${S.confs[x.id].name}</b></span>
+      <span style="display:flex;align-items:center;gap:8px"><span class="bar" style="width:70px;height:5px;background:var(--faint);border-radius:3px;overflow:hidden;display:inline-block"><i style="display:block;height:100%;width:${(x.v/maxCv)*100}%;background:${confHex(x.id)}"></i></span><span style="color:var(--gold)">${fmtM(x.v)}</span></span></div>`).join("");
+  showModal(`<h2>💰 The Rich List</h2>
+    <div class="sub">${S.year} program valuations — the same fundamentals your TV partners price. The market pays roughly 5% of league value per year. Your most valuable program ranks <b>#${myTop+1}</b>.</div>
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px">
+      <div><div class="secLbl" style="margin:0 0 6px">Most Valuable Programs</div><div style="max-height:340px;overflow-y:auto">${rows}</div></div>
+      <div><div class="secLbl" style="margin:0 0 6px">Conference Valuations</div>${crow}</div>
+    </div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Close</button></div>`);
+}
+function vaultModal(){
+  if(!S)return;
+  const champs=Object.entries(S.champs).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([ab,n])=>{
+    const s=S.schools.find(x=>x.abbr===ab);
+    return `<div class="mrow"><span style="color:${inkFor(s)};font-weight:700">${s.name}</span><span>${n}× 🏆</span></div>`;
+  }).join("")||`<div class="mrow"><span style="color:var(--dim)">No champions crowned yet</span><span></span></div>`;
+  const led=[...S.ledger].reverse().slice(0,80).map(l=>
+    `<div><b>${l.yr}</b> — ${l.school}: <span style="color:var(--dim)">${l.from}</span> → <b style="color:${confHex(l.toId)}">${l.to}</b></div>`
+  ).join("")||"<div>No moves yet. The calm before the storm.</div>";
+  showModal(`<h2>📜 The Vault</h2><div class="sub">${S.confs[S.player].name} timeline · ${S.startYear}–${S.year} · ${S.titles} title${S.titles===1?"":"s"} for your league</div>
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:16px">
+      <div><div class="secLbl" style="margin:0 0 6px">Dynasty Board</div>${champs}</div>
+      <div><div class="secLbl" style="margin:0 0 6px">Realignment Ledger</div><div class="recap" style="margin-top:0;max-height:320px">${led}</div></div>
+    </div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Close</button></div>`);
+}
+function gameBadges(g){
+  const b=[];
+  const finalRank=S.ranks.length?S.ranks[S.ranks.length-1]:99;
+  if(S.confs[S.player].slWin)b.push(["👑","EMPIRE","became the Super League"]);
+  if(S.slFormed&&!S.confs[S.player].slWin&&S.slLost===0&&!g.dead)b.push(["🛡","HELD THE LINE","lost nobody to the breakaway"]);
+  if(S.startRank>=7&&finalRank<=3&&!g.dead)b.push(["🚀","BASEMENT TO PENTHOUSE",`started #${S.startRank}, finished #${finalRank}`]);
+  if(S.player==="pac"&&!g.dead&&finalRank<=3)b.push(["🌊","SAVED THE PAC-10","rewrote history"]);
+  if((S.player==="be"||S.player==="wac")&&!g.dead)b.push(["🧟","SURVIVOR","a dead league walking — still walking"]);
+  if(S.titles>=4)b.push(["🏆","DYNASTY",S.titles+" national titles"]);
+  if(S.g5Natty)b.push(["🌟","GIANT KILLER","a G5 natty on your watch"]);
+  if(S.expels>=3)b.push(["🥶","COLD-BLOODED",S.expels+" schools expelled"]);
+  if(!g.dead&&g.soul>=84)b.push(["🏡","STUDENTS FIRST","regional, loyal, beloved — football the way it was supposed to work"]);
+  if(!g.dead&&g.soul<=35&&(g.grade==="S"||g.grade[0]==="A"))b.push(["🕴","SOLD ITS SOUL","rich beyond measure; beloved by no one"]);
+  if(S.slBusted)b.push(["⚔️","TRUST BUSTER","the Super League died in court — because of you"]);
+  if(S.confs[S.player].concordat)b.push(["🤝","THE CONCORDAT","affiliated, protected, compromised"]);
+  if(S.restored)b.push(["🎓","THE RESTORATION","regional Saturdays, scholarships first — the money went to the NFL"]);
+  if(!g.dead&&S.confs.sl&&!S.confs.sl.dead&&!S.confs[S.player].slWin&&payoutOf(S,S.player)>payoutOf(S,"sl"))b.push(["🐐","OUT-EARNED THE EMPIRE","a mortal league beat the Super League's payout"]);
+  if(!g.dead&&S.slFormed&&!S.confs[S.player].slWin&&g.soul>=88)b.push(["❤️","THE PEOPLE'S LEAGUE","America watches them on Tuesday. America loves you on Saturday."]);
+  return b;
+}
+function endChart(){
+  const c=S.confs[S.player];
+  const hist=c.hist||[];
+  if(hist.length<3)return "";
+  const yrs=hist.map(h=>h.yr);
+  const leader={};
+  for(const id of ALLC){const cc=S.confs[id];(cc.hist||[]).forEach(h=>{leader[h.yr]=Math.max(leader[h.yr]||0,h.pay);});}
+  const W=560,H=150,P=10;
+  const y0=yrs[0],y1=yrs[yrs.length-1];
+  const maxV=Math.max(...hist.map(h=>h.pay),...yrs.map(y=>leader[y]||0),1)*1.06;
+  const X=y=>P+(y-y0)/Math.max(1,y1-y0)*(W-2*P);
+  const Y=v=>H-P-(v/maxV)*(H-2*P-14);
+  const mine=hist.map(h=>`${X(h.yr).toFixed(1)},${Y(h.pay).toFixed(1)}`).join(" ");
+  const led=yrs.map(y=>`${X(y).toFixed(1)},${Y(leader[y]||0).toFixed(1)}`).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:9px;margin-top:12px">
+    <polygon points="${P},${H-P} ${mine} ${X(y1).toFixed(1)},${H-P}" fill="${c.hex}" opacity="0.13"/>
+    <polyline points="${led}" fill="none" stroke="#5b7294" stroke-width="1.6" stroke-dasharray="5 4"/>
+    <polyline points="${mine}" fill="none" stroke="${c.hex}" stroke-width="2.6" stroke-linejoin="round"/>
+    <text x="${P+2}" y="15" fill="#8fa8c9" font-size="10.5">the thirty-year race — <tspan fill="${c.hex}" font-weight="700">your payout</tspan> vs <tspan fill="#7f97bb">the field's best</tspan></text>
+    <text x="${P+2}" y="${H-P+1}" fill="#5b7294" font-size="9">${y0}</text>
+    <text x="${W-P-26}" y="${H-P+1}" fill="#5b7294" font-size="9">${y1}</text>
+    <text x="${W-P-4}" y="30" fill="var(--gold)" font-size="11" font-weight="700" text-anchor="end">${fmtM(hist[hist.length-1].pay)}/school at the end</text>
+  </svg>`;
+}
+function epilogueText(g){
+  const c=S.confs[S.player];
+  const adds=S.ledger.filter(l=>l.toId===S.player&&l.from!=="FCS");
+  const fcs=S.ledger.filter(l=>l.toId===S.player&&l.from==="FCS");
+  const losses=S.ledger.filter(l=>l.from===c.name&&l.toId!==S.player);
+  const coup=adds.map(l=>({l,s:S.schools.find(x=>x.abbr===l.ab)})).filter(x=>x.s).sort((a,b)=>b.s.brand-a.s.brand)[0];
+  const wound=losses.map(l=>({l,s:S.schools.find(x=>x.abbr===l.ab)})).filter(x=>x.s).sort((a,b)=>b.s.brand-a.s.brand)[0];
+  const deaths=ALLC.filter(id=>S.confs[id].diedYr&&id!==S.player);
+  const p=[`You took the ${c.name} chair in ${S.startYear} as the <b>#${S.startRank}</b> league in the sport.`];
+  if(g.dead){
+    if(wound)p.push(`Losing <b>${wound.s.name}</b> in ${wound.l.yr} was the wound that never closed.`);
+    p.push(`By ${S.year} there was nothing left to run. The obituary writers were kind. The members were not.`);
+  }else{
+    if(coup)p.push(`The defining move: bringing in <b>${coup.s.name}</b> in ${coup.l.yr}.`);
+    if(wound&&wound.s.brand>=72)p.push(`The scar that stayed: ${wound.s.name} walking in ${wound.l.yr}.`);
+    if(fcs.length)p.push(`You raised ${fcs.length} program${fcs.length>1?"s":""} up from the FCS — empires built from below.`);
+    if(S.titles)p.push(`${S.titles} national championship banner${S.titles>1?"s":""} went up on your watch.`);
+    if(deaths.length)p.push(`You outlived the ${deaths.map(id=>S.confs[id].name).join(", the ")}.`);
+    p.push(g.grade==="S"?`History will not call this a tenure. It will call it <b>an empire</b>.`
+      :g.grade[0]==="A"?`History will call this a dynasty.`
+      :g.grade[0]==="B"?`A tenure worth a statue. A modest statue, but bronze is bronze.`
+      :g.grade[0]==="C"?`You survived the most predatory era the sport ever saw. That is not nothing.`
+      :`The less said about the money, the better.`);
+    if(S.slBusted)p.push(`They built a Super League. You buried it in court filings.`);
+    if(S.restored)p.push(`Then you did the thing nobody believed possible: sent the money to the NFL and kept the Saturdays for the kids.`);
+    if(S.confs[S.player].concordat)p.push(`The Concordat kept your league rich and whole. What it cost doesn't show up on the wire transfer.`);
+    if(g.soul>=84)p.push(`And the miracle: you did it without selling the thing itself — bus rides, blood rivals, kids first. Somewhere, a 1975 athletic director nods.`);
+    else if(g.soul<=35&&g.grade[0]<="B")p.push(`The money is generational. The soul is a line item.`);
+  }
+  return p.join(" ");
+}
+function endScreen(){
+  storClear();
+  if(!S.over)S.over="done";
+  const g=finalScore();
+  const c=S.confs[S.player];
+  const gc=g.grade==="S"?"var(--gold)":g.grade[0]==="A"?"var(--green)":g.grade[0]==="B"?"var(--teal)":g.grade[0]==="C"?"var(--gold)":"var(--red)";
+  const headline=g.dead?`☠ <b>The ${c.name} is dead.</b> You presided over its funeral.`
+    :S.restored?`🎓 <b>You gave the sport back.</b> Regional Saturdays, scholarships first — and the money went where money goes.`
+    :g.slWin?`👑 You didn't survive the realignment era — <b>you ended it.</b>`
+    :(S.slFormed&&S.slLost===0)?`🛡 The breakaway came for your best — <b>and your league didn't crack.</b>`
+    :`${members(S,S.player).length} schools · ${fmtM(payoutOf(S,S.player))}/school · ${S.titles} national title${S.titles===1?"":"s"}.`;
+  const bd=gameBadges(g);
+  const badgeRow=bd.length?`<div class="reveal" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;animation-delay:1.5s">${bd.map((x,i)=>`<span class="lg reveal" title="${x[2]}" style="font-size:11px;padding:5px 10px;animation-delay:${1.5+i*0.18}s">${x[0]} ${x[1]}</span>`).join("")}</div>`:"";
+  const req=[...ALLC,...(S.confs.sl&&S.confs.sl.diedYr?["sl"]:[])].filter(id=>S.confs[id].diedYr).map(id=>`<span class="lg" style="font-size:10.5px;color:${id==="sl"?"var(--gold)":"var(--red)"}">† ${S.confs[id].name} · ${S.confs[id].diedYr}</span>`).join("");
+  const chapters={};
+  S.log.forEach(l=>{const d=Math.floor(l.yr/10)*10;(chapters[d]=chapters[d]||[]).push(l);});
+  const recap=Object.keys(chapters).sort().map(d=>
+    `<div style="margin-top:7px"><b style="color:var(--teal);letter-spacing:1.5px;font-size:11px">THE ${d}s</b></div>`+
+    chapters[d].map(l=>`<div><b>${l.yr}</b> — ${l.txt}</div>`).join("")
+  ).join("")||"<div>A quiet three decades. Suspiciously quiet.</div>";
+  const share=`CONFERENCE WARS${S.daily?" DAILY "+S.daily:""} — I ran the ${c.name} from ${S.startYear}→${S.year}. Money: ${g.grade}${g.dead?" (league DIED)":" · Soul: "+g.soulGrade+" · "+fmtM(payoutOf(S,S.player))+"/school"}${S.titles?" · "+S.titles+" natties":""}${bd.map(x=>" · "+x[0]+" "+x[1]).join("")}. Can you save the SWC?`;
+  showModal(`<h2 style="text-align:center">FINAL GRADE</h2>
+    <div class="sub" style="text-align:center">${S.daily?"🎲 DAILY "+S.daily+" · ":""}${c.name} · ${S.startYear}–${S.year} · started #${S.startRank}${g.dead?" · dissolved "+(c.diedYr||S.year):""}</div>
+    <div class="reveal" style="animation-delay:.1s">${endChart()}</div>
+    <div class="grade gradeStamp" style="color:${gc};animation-delay:.7s;margin-top:8px">${g.dead?"F":g.grade}</div>
+    <div class="oddsLbl reveal" style="animation-delay:1.1s"><span id="scoreTick">0</span>${g.dead?" — CONFERENCE DISSOLVED":" / 100 — the money grade"}</div>
+    ${g.dead?"":`<div class="reveal" style="text-align:center;animation-delay:1.25s;font-size:14px;font-weight:800;letter-spacing:1.5px;color:${g.soul>=76?"var(--green)":g.soul>=48?"var(--gold)":"var(--red)"}">SOUL: ${g.soulGrade} <span class="kbd" style="font-weight:400;letter-spacing:.4px">${g.soul}/100 — happy members, regional roots, loyalty, clean hands. The scoreboard money can't see.</span></div>`}
+    <div class="body reveal" style="text-align:center;animation-delay:1.3s">${headline}</div>
+    ${g.dead?"":`<div class="reveal" style="margin-top:12px;animation-delay:1.5s">${[
+      ["STANDING",g.rankPts,40,"average national rank #"+g.avgRank.toFixed(1)+" across the whole run"],
+      ["MONEY",g.payPts,28,"final payout per school vs the field's best league"],
+      ["BRAND POWER",g.brandPts,14,"your roster's combined star power vs the day you took over"],
+      ["THE CLIMB",g.climbPts,18,"started #"+S.startRank+" — every rank you finish above it pays"],
+      ["TITLES",g.titlePts,8,S.titles+" national championship"+(S.titles===1?"":"s")+" (+2 each)"],
+      ...(g.slPts?[["SUPER LEAGUE",g.slPts,8,"you took the throne"]]:[]),
+      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,6,"you killed the Super League in court"]]:[])
+    ].map(r=>`<div class="mrow" style="border-bottom:1px solid #1e3a5f44">
+      <span style="width:118px;flex:none;font-size:10.5px;letter-spacing:1.2px;font-weight:800;color:var(--dim)">${r[0]}</span>
+      <span style="flex:1;color:#a9bcd9;font-size:11.5px">${r[3]}</span>
+      <span style="display:flex;align-items:center;gap:8px;flex:none">
+        <span style="width:64px;height:5px;background:var(--faint);border-radius:3px;overflow:hidden;display:inline-block"><i style="display:block;height:100%;width:${Math.round(r[1]/r[2]*100)}%;background:var(--teal)"></i></span>
+        <b style="font-variant-numeric:tabular-nums;width:54px;text-align:right;white-space:nowrap">${Math.round(r[1])} / ${r[2]}</b></span></div>`).join("")}</div>`}
+    ${badgeRow}
+    <div class="body reveal" style="margin-top:12px;color:#c9d8ef;animation-delay:2s">${epilogueText(g)}</div>
+    ${req?`<div class="reveal" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;animation-delay:2.2s"><span class="kbd" style="padding-top:4px">FALLEN LEAGUES:</span>${req}</div>`:""}
+    <div class="recap reveal" style="animation-delay:2.4s">${recap}</div>
+    <div class="btnRow reveal" style="animation-delay:2.6s"><button id="shareBtn">📋 COPY RESULT</button>${g.dead?"":'<button class="btn-gold" id="contBtn">KEEP PLAYING — 10 MORE SEASONS ▸</button>'}<button class="btn-cta" id="againBtn">RUN IT BACK</button></div>`);
+  // score count-up
+  const target=g.dead?0:g.score;
+  let cur=0;
+  const tick=setInterval(()=>{
+    cur+=Math.max(1,Math.ceil(target/40));
+    if(cur>=target){cur=target;clearInterval(tick);}
+    const el2=$("scoreTick");if(el2)el2.textContent=cur;else clearInterval(tick);
+  },34);
+  $("shareBtn").onclick=()=>{
+    try{navigator.clipboard.writeText(share);toast("Copied — go start an argument.");}
+    catch(e){toast(share);}
+  };
+  const cont=$("contBtn");
+  if(cont)cont.onclick=()=>{
+    S.over=false;S.overtime=true;S.endYear+=10;
+    hideModal();renderAll();
+    news(S,`⏱ <b>Overtime.</b> The board tears up your retirement papers — ten more seasons on the clock, through ${S.endYear}.`,"good");
+    renderNews();
+    toast(`Overtime, Commissioner — through ${S.endYear}. Your grade will be re-issued.`);
+  };
+  $("againBtn").onclick=()=>{showPick();};
+}
+/* ---------- boot ---------- */
+$("btnAdvance").addEventListener("click",advance);
+$("btnVault").addEventListener("click",vaultModal);
+document.querySelectorAll(".mbtn[data-mm]").forEach(b=>b.addEventListener("click",()=>{
+  mapMode=b.dataset.mm;
+  document.querySelectorAll(".mbtn[data-mm]").forEach(x=>x.classList.toggle("on",x===b));
+  if(S){drawDots();drawLegend();}
+}));
+$("btnRich").addEventListener("click",richModal);
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&$("shade").style.display!=="flex"){e.preventDefault();advance();}
+});
+buildMapBase();
+initMapNav();
+showPick();
+</script>
+</body>
+</html>
