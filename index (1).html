@@ -175,6 +175,26 @@
   #mobNote{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:90;background:#122441f2;border:1px solid var(--line);border-radius:10px;padding:9px 30px 9px 13px;font-size:12px;max-width:92%}
   #mobNote .x{position:absolute;top:5px;right:9px;cursor:pointer;color:var(--dim);font-weight:800}
   @media (max-width:920px){ #app{min-width:1180px} body{overflow:auto} }
+
+  /* ---------- enhancements ---------- */
+  @keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.35}}
+  .expiring{animation:pulse-warn 1.4s ease infinite}
+  .act{transition:transform .12s, box-shadow .15s}
+  .act:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 4px 16px #0008}
+  .mem{transition:background .12s, border-color .12s, transform .1s}
+  .mem:hover{transform:translateX(3px)}
+  .chip{transition:transform .12s}
+  .chip:hover{transform:translateY(-1px)}
+  .stat{transition:background .2s}
+  .stat:hover{background:#162a49}
+  #undoBtn,#soundBtn,#autoBtn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px}
+  #undoBtn:disabled{opacity:.2}
+  #autoBtn.on{background:var(--teal-d);color:#04241f;border-color:transparent}
+  .pick{transition:transform .12s, box-shadow .15s}
+  .pick:hover{transform:translateY(-2px)}
+  #btnAdvance{transition:box-shadow .2s}
+  #btnAdvance:hover:not(:disabled){box-shadow:0 0 24px #14b8a644}
+  .kbd-hint{display:inline-block;background:#0d1a2e;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:9.5px;color:var(--dim);font-family:monospace;margin-left:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -187,6 +207,9 @@
     <div class="chip"><div class="k">Nat'l Rank</div><div class="v" id="uiRank">—</div></div>
     <div class="chip"><div class="k">Actions Left</div><div class="v teal" id="uiAP">2</div></div>
     <div class="spacer"></div>
+    <button id="undoBtn" disabled title="Undo last action (Z)">↩ UNDO</button>
+    <button id="soundBtn" title="Toggle sound (M)">🔊</button>
+    <button id="autoBtn" title="Auto-advance seasons (A)">▶▶ AUTO</button>
     <button class="btn-ghost" id="btnRich" title="Program and conference valuations — the money behind the map">💰 RICH LIST</button>
     <button class="btn-ghost" id="btnVault" title="Titles, records, and every move ever made">📜 VAULT</button>
     <button class="btn-cta" id="btnAdvance">ADVANCE SEASON ▸</button>
@@ -364,6 +387,21 @@ const SCHOOL_COLORS={
  TROY:"#8A2432",MTSU:"#0066CC",NT:"#00853E",ARST:"#CC092F",ULL:"#CE181E",FAU:"#BF2F38",FIU:"#B6862C",
  RICE:"#8996A0"
 };
+const RIVALRIES=[
+  ["MICH","OSU","The Game"],["BAMA","AUB","Iron Bowl"],["TEX","OU","Red River Shootout"],
+  ["TEX","TAMU","Lone Star Showdown"],["FSU","MIA","Florida rivalry"],["FSU","FLA","Sunshine Showdown"],
+  ["UGA","FLA","World's Largest Cocktail Party"],["USC","UCLA","Victory Bell"],
+  ["USC","ND","greatest intersectional rivalry"],["ORE","ORST","Civil War"],
+  ["WASH","WSU","Apple Cup"],["MICH","MSU","Paul Bunyan Trophy"],["IOWA","ISU","Cy-Hawk"],
+  ["KAN","MIZ","Border War"],["CLEM","SCAR","Palmetto Bowl"],["UNC","DUKE","Tobacco Road"],
+  ["PITT","WVU","Backyard Brawl"],["ARMY","NAVY","America's Game"],
+  ["CAL","STAN","The Big Game"],["NEB","OU","Game of the Century"],
+  ["VT","UVA","Commonwealth Cup"],["GT","UGA","Clean Old-Fashioned Hate"],
+  ["TENN","BAMA","Third Saturday in October"],["LSU","BAMA","rivalry of the century"],
+  ["OU","OKST","Bedlam"],["BAY","TCU","Revivalry"],["UTAH","BYU","Holy War"],
+  ["BSU","FRES","blue turf brawl"],["CIN","LOU","Keg of Nails"],
+  ["TOL","BGSU","Battle of I-75"],["HOU","SMU","Bayou Bucket"]
+];
 /* FCS programs a G5 commissioner can promote: [abbr, name, lat, lon, brand, market, color] */
 const FCS_POOL=[
  ["APP","Appalachian State",36.21,-81.68,46,34,"#FFCC00"],
@@ -453,6 +491,32 @@ const fmtM=v=>"$"+(v>=1000?(v/1000).toFixed(1)+"B":v>=10?Math.round(v)+"M":Math.
 const proj=(lat,lon)=>[ (lon+126)*(940/60)+15, (50-lat)*(560/26)+10 ];
 
 let S=null; // game state
+
+/* ---------- sound system ---------- */
+let soundOn=true;
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null;
+function getAudio(){if(!audioCtx)try{audioCtx=new AudioCtx()}catch(e){soundOn=false}return audioCtx}
+function playTone(f,d,t,v){if(!soundOn)return;const c=getAudio();if(!c)return;try{const o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||0.06;g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}}
+function sfxGood(){playTone(523,.1);setTimeout(()=>playTone(659,.12),90)}
+function sfxBad(){playTone(330,.18,'triangle');setTimeout(()=>playTone(262,.25,'triangle'),120)}
+function sfxClick(){playTone(880,.03,'sine',.03)}
+function sfxAdvance(){playTone(440,.07);setTimeout(()=>playTone(554,.07),70);setTimeout(()=>playTone(659,.1),140)}
+function sfxEnd(){playTone(523,.15,.08);setTimeout(()=>playTone(659,.15,null,.07),150);setTimeout(()=>playTone(784,.3,null,.08),300)}
+
+/* ---------- undo system ---------- */
+let undoStack=[];
+function saveUndo(){try{undoStack.push(JSON.stringify(S));if(undoStack.length>20)undoStack.shift()}catch(e){}}
+function doUndo(){if(!undoStack.length){toast("Nothing to undo.");return}try{S=JSON.parse(undoStack.pop());renderAll();toast("Rewound.");sfxClick()}catch(e){toast("Undo failed.")}}
+
+/* ---------- auto-advance ---------- */
+let autoAdvance=false,autoTimer=null;
+function toggleAuto(){
+  autoAdvance=!autoAdvance;
+  const b=$("autoBtn");if(b)b.classList.toggle("on",autoAdvance);
+  if(autoAdvance){autoTimer=setInterval(()=>{if(!S||S.over||S.queue.length||$("shade").style.display==="flex")return;advance()},2200);toast("Auto-advance ON.")}
+  else{clearInterval(autoTimer);toast("Auto-advance OFF.")}
+}
 
 function newState(playerConf,era){
   era=era||2005;
@@ -639,6 +703,7 @@ function moveSchool(st,school,toId,why){
       `The ${fromName} loses ${school.name} to the <b>${toName}</b>. "We wish them well," says a statement that wishes them nothing.`]);
   news(st,line+feeNote, toId===st.player?"good":"poach");
   log(st,`${school.abbr} → ${toName}`);
+  if(toId===st.player)sfxGood();else if(fromId===st.player)sfxBad();
   if(fromId!=="g5") checkCollapse(st,fromId);
 }
 
@@ -979,7 +1044,39 @@ function runFlavor(st){
      news(st,`\u{1F6F0} ${insider()}: the ${st.confs[cid].name} has "done its homework" on <b>${t.name}</b>. Nothing imminent. Sources stress: nothing imminent.`,"event");}],
    [4,()=>{news(st,st.year<2014?`\u270D\uFE0F Column of the week: "The BCS is fine, actually." The comment section is a war zone.`
      :st.year<2024?`\u270D\uFE0F Column of the week: "Just expand the Playoff and nobody gets hurt."`
-     :`\u270D\uFE0F Column of the week: "Does the transfer portal need a portal?" Nobody knows anymore.`,"event");}]
+     :`\u270D\uFE0F Column of the week: "Does the transfer portal need a portal?" Nobody knows anymore.`,"event");}],
+   [8,()=>{
+     const pairs=RIVALRIES.filter(r=>{const a=byAbbr(st,r[0]),b=byAbbr(st,r[1]);return a&&b&&a.conf===b.conf&&a.conf!=="g5"&&a.conf!=="sl";});
+     const rv=pick(pairs);if(!rv)return;
+     const a=byAbbr(st,rv[0]),b=byAbbr(st,rv[1]);
+     a.brand=Math.min(99,a.brand+2);b.brand=Math.min(99,b.brand+2);
+     news(st,`\u{1F525} <b>${a.name}\u2013${b.name}</b> delivers an all-time classic. ${rv[2]} lives. Ratings through the roof${a.conf===st.player?" \u2014 your league's showcase":"."}`,(a.conf===st.player?"good":"event"));}],
+   [6,()=>{
+     const pairs=RIVALRIES.filter(r=>{const a=byAbbr(st,r[0]),b=byAbbr(st,r[1]);return a&&b&&a.conf!==b.conf&&a.conf!=="sl"&&b.conf!=="sl";});
+     const rv=pick(pairs);if(!rv)return;
+     const a=byAbbr(st,rv[0]),b=byAbbr(st,rv[1]);
+     news(st,`\u{1F494} ${a.name} and ${b.name} haven't played in years. Realignment killed ${rv[2]}. The fans mourn annually.`,"event");}],
+   [5,()=>{if(st.year<2021)return;const t=pick(pool.filter(x=>x.brand>=55));if(!t)return;t.brand=Math.min(99,t.brand+3);
+     news(st,`\u{1F911} The NIL collective at <b>${t.name}</b> drops a $5M bag. Five-star recruits incoming.`,"money");}],
+   [5,()=>{if(st.year<2018)return;const t=pick(pool.filter(x=>x.brand>=50));if(!t)return;
+     news(st,`\u{1F504} Transfer portal chaos: <b>${t.name}</b> loses its entire secondary in 48 hours. The portal giveth, the portal taketh.`,"event");}],
+   [4,()=>{const t=pick(pool);if(!t)return;t.brand=Math.min(99,t.brand+3);
+     news(st,`\u{1F3C0} <b>${t.name}</b> goes on a March Madness run. Basketball lifts the whole athletic department.`,"event");}],
+   [3,()=>{const t=pick(pool);if(!t)return;t.mood=Math.min(98,t.mood+5);
+     news(st,`\u{1F4CA} <b>${t.name}</b> hits a sellout streak \u2014 50 straight home games. The culture is undeniable.`,"good");}],
+   [4,()=>{if(st.year<2012)return;const t=pick(pool.filter(x=>x.brand>=65));if(!t)return;
+     news(st,tmpl([`\u{1F4F1} ${t.name}'s game-winning play breaks the internet \u2014 200M views by Monday. The brand isn't built on Saturdays anymore.`,
+       `\u{1F4F1} A ${t.name} walk-on catches the game-winner. The clip trends globally. College football remains unscripted.`]),"event");}],
+   [3,()=>{const coaches=pool.filter(x=>x.brand>=60);if(coaches.length<3)return;
+     const a2=pick(coaches),b2=pick(coaches.filter(x=>x!==a2));if(!b2)return;
+     news(st,`\u{1F3A0} <b>Coaching carousel:</b> ${a2.name}'s coach leaves for ${b2.name}. ${a2.name} hires from the G5. Musical chairs season.`,"event");
+     a2.brand=Math.max(35,a2.brand-2);b2.brand=Math.min(99,b2.brand+2);}],
+   [4,()=>{const t=pick(pool.filter(x=>x.brand<55));if(!t)return;t.brand=Math.min(99,t.brand+6);t.mood=Math.min(98,t.mood+8);
+     news(st,tmpl([`\u{1F31F} <b>${t.name}</b> goes wire-to-wire undefeated. The Cinderella nobody saw coming.`,
+       `\u{1F31F} Nobody outside ${t.name}'s area code gave them a chance. They went unbeaten anyway.`]),"good");}],
+   [3,()=>{const t=pick(pool.filter(x=>x.brand>=70));if(!t)return;t.brand=Math.max(35,t.brand-5);t.mood-=6;
+     news(st,tmpl([`\u{1F6A8} Booster scandal at <b>${t.name}</b>. The bag man had a bag man. NCAA on line one.`,
+       `\u{1F6A8} A ${t.name} booster's group chat leaks. It's bad. The compliance office is on fire.`]),"poach");}]
   ];
   const tot=acts.reduce((a,x)=>a+x[0],0);let r=rng()*tot;
   for(const wf of acts){r-=wf[0];if(r<0){wf[1]();return;}}
@@ -1080,14 +1177,104 @@ const CHOICE_EVENTS=[
       {label:"NOT OUR PROBLEM",kbd:`${t.abbr} −5 brand · −5 mood`,fn:()=>{
         t.brand=Math.max(35,t.brand-5);t.mood-=5;
         news(st,`✈️ ${t.name}'s coach takes the NFL job. The rebuild begins.`,"event");}}]};
+ }},
+ {id:"nil",cd:4,cond:st=>st.year>=2021&&members(st,st.player).some(s=>s.brand>=70),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=70));
+   return {title:`NIL arms race at ${t.name}`,sub:`${st.year} · boosters gone wild`,
+     body:`${t.name}'s boosters launched a $20M NIL collective. Smaller members demand the league regulate it before the sport eats itself.`,
+     opts:[
+      {label:"LET THE MONEY FLY",kbd:`${t.abbr} +5 brand · members under 60 brand −4 mood`,fn:()=>{
+        t.brand=Math.min(99,t.brand+5);
+        members(st,st.player).filter(s=>s.brand<60).forEach(s=>s.mood-=4);
+        news(st,`💸 NIL money floods your league. The haves feast. The have-nots seethe.`,"money");log(st,"Let NIL run wild");}},
+      {label:"CAP IT LEAGUE-WIDE",kbd:"small schools +3 mood · top brands −3 mood",fn:()=>{
+        members(st,st.player).forEach(m=>{m.mood+=m.brand>=70?-3:3;});
+        news(st,`📋 You impose NIL guardrails. The small schools exhale; the big brands call their lawyers.`,"event");}}]};
+ }},
+ {id:"intl",cd:8,cond:st=>st.year>=2012,make:st=>{
+   const loc=tmpl(["Dublin","London","Tokyo","Mexico City","Sydney"]);
+   return {title:`An overseas game in ${loc}`,sub:`${st.year} · going global`,
+     body:`A broadcaster wants to stage your marquee game in ${loc} — massive global exposure, but your home crowd loses a Saturday.`,
+     opts:[
+      {label:"PLAY ABROAD",kbd:"+4% media for 2 yrs · home team −5 mood",fn:()=>{
+        st.confs[st.player].pen.push({until:st.year+2,pct:-0.04});
+        const t=pick(members(st,st.player));if(t)t.mood-=5;
+        news(st,`✈️ Your conference goes global — kickoff in ${loc}. Alumni rage; networks drool.`,"money");log(st,`Played in ${loc}`);}},
+      {label:"KEEP IT STATESIDE",kbd:"no change",fn:()=>{
+        news(st,`🏟 You turn down the overseas game. "We don't export our Saturdays."`,"event");}}]};
+ }},
+ {id:"merger",cd:12,cond:st=>ALLC.some(id=>!st.confs[id].dead&&id!==st.player&&members(st,id).length<=8&&members(st,id).length>=6),make:st=>{
+   const weak=pick(ALLC.filter(id=>!st.confs[id].dead&&id!==st.player&&members(st,id).length<=8&&members(st,id).length>=6));
+   if(!weak)return null;
+   const wc=st.confs[weak],wm=members(st,weak);
+   return {title:`The ${wc.name} proposes a merger`,sub:`${st.year} · survival mode`,
+     body:`The ${wc.name} has ${wm.length} schools left and can't land a TV deal. They offer to fold into your league — all members absorbed.`,
+     opts:[
+      {label:"ABSORB THEM",kbd:`+${wm.length} schools · −3% revenue 2 yrs`,fn:()=>{
+        payCost(st,0.03,2);
+        for(const s of [...wm])moveSchool(st,s,st.player,"the merger saves them");
+        news(st,`🤝 <b>The ${wc.name} merges into your league.</b> ${wm.length} new schools, one new headache.`,"good");log(st,`Absorbed the ${wc.name}`);}},
+      {label:"LET THEM DIE",kbd:"their schools hit the open market",fn:()=>{
+        news(st,`❄️ You decline the merger. The ${wc.name} is on its own.`,"event");}}]};
+ }},
+ {id:"sched",cd:5,cond:st=>members(st,st.player).length>=12,make:st=>({
+   title:"Scheduling revolt",sub:`${st.year} · the ADs push back`,
+   body:`Your ADs want to drop a conference game to schedule marquee non-conference matchups. More exposure, less conference identity.`,
+   opts:[
+    {label:"FEWER CONFERENCE GAMES",kbd:"+3% media 3 yrs · every member −3 mood",fn:()=>{
+      st.confs[st.player].pen.push({until:st.year+3,pct:-0.03});
+      members(st,st.player).forEach(m=>m.mood-=3);
+      news(st,`📅 You cut a conference game. Networks love it; rivalries suffer.`,"money");}},
+    {label:"CONFERENCE GAMES FIRST",kbd:"members +4 mood",fn:()=>{
+      members(st,st.player).forEach(m=>m.mood+=4);
+      news(st,`📅 You protect the conference schedule. The round-robin lives.`,"good");}}]
+ })},
+ {id:"acad",cd:7,cond:st=>members(st,st.player).some(s=>!s.aau&&s.brand<65),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>!s.aau&&s.brand<65));
+   if(!t)return null;
+   return {title:`Academic scandal at ${t.name}`,sub:`${st.year} · accreditors at the door`,
+     body:`${t.name}'s academic standing is under review. Lose accreditation, lose the conference membership — automatically.`,
+     opts:[
+      {label:"INVEST IN ACADEMICS",kbd:`−2% revenue 2 yrs · ${t.abbr} saved · gains AAU status`,fn:()=>{
+        payCost(st,0.02,2);t.aau=true;t.mood=Math.min(98,t.mood+8);
+        news(st,`🎓 You fund an academic rescue at ${t.name}. They earn AAU status.`,"good");log(st,`Saved ${t.abbr}'s academics`);}},
+      {label:"LET THE CHIPS FALL",kbd:"40% survive · 60% expelled",fn:()=>{
+        if(rng()<0.4)news(st,`📚 ${t.name} passes its review. Crisis averted.`,"event");
+        else{playerExpel(st,t);news(st,`📚 ${t.name} loses accreditation. You had no choice.`,"poach");}}}]};
+ }},
+ {id:"stadium",cd:6,cond:st=>members(st,st.player).some(s=>s.brand>=60),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=60));
+   return {title:`${t.name} wants a mega-stadium`,sub:`${st.year} · if you build it…`,
+     body:`${t.name} is planning a $500M stadium renovation and wants the conference to chip in 20%.`,
+     opts:[
+      {label:"CO-FUND THE PALACE",kbd:`−3% revenue 3 yrs · ${t.abbr} +8 brand +12 mood`,fn:()=>{
+        payCost(st,0.03,3);t.brand=Math.min(99,t.brand+8);t.mood=Math.min(98,t.mood+12);
+        news(st,`🏗 You co-fund ${t.name}'s mega-stadium. The renderings go viral.`,"good");log(st,`Co-funded ${t.abbr}'s stadium`);}},
+      {label:"THAT'S YOUR PROBLEM",kbd:`${t.abbr} −8 mood`,fn:()=>{
+        t.mood-=8;news(st,`🏟 You tell ${t.name} to fund its own palace. They build it anyway — and update their realignment shortlist.`,"event");}}]};
+ }},
+ {id:"portal",cd:4,cond:st=>st.year>=2018,make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=55));
+   if(!t)return null;
+   return {title:`Transfer portal exodus at ${t.name}`,sub:`${st.year} · the portal giveth, the portal taketh`,
+     body:`${t.name} just lost a dozen players to the portal after a coaching change. The AD is panicking.`,
+     opts:[
+      {label:"EMERGENCY LEAGUE SUPPORT",kbd:`−1% revenue 1 yr · ${t.abbr} +4 brand +6 mood`,fn:()=>{
+        payCost(st,0.01,1);t.brand=Math.min(99,t.brand+4);t.mood=Math.min(98,t.mood+6);
+        news(st,`🔄 The league steps in to stabilize ${t.name} through portal chaos.`,"good");}},
+      {label:"NATURAL SELECTION",kbd:`${t.abbr} −4 brand`,fn:()=>{
+        t.brand=Math.max(35,t.brand-4);
+        news(st,`🔄 ${t.name} bleeds talent to the portal. Rebuild mode.`,"event");}}]};
  }}
 ];
 function queueChoiceEvent(st){
   const elig=CHOICE_EVENTS.filter(e=>(st.evtCd[e.id]===undefined||st.evtCd[e.id]+e.cd<=st.year)&&e.cond(st));
   if(!elig.length)return;
   const e=pick(elig);
+  const spec=e.make(st);
+  if(!spec)return;
   st.evtCd[e.id]=st.year;
-  st.queue.push({type:"choice",spec:e.make(st)});
+  st.queue.push({type:"choice",spec});
 }
 
 function queueSecRaid(st,school,toId){
@@ -1239,7 +1426,7 @@ function slPressure(st){
 }
 
 /* ---------- player actions ---------- */
-function spendAP(st,n){st.ap-=n;}
+function spendAP(st,n){saveUndo();st.ap-=n;}
 // costs come out of the war chest first; only unfunded costs dent revenue
 function payCost(st,pct,years){
   const c=st.confs[st.player];
@@ -1380,6 +1567,7 @@ function playerDeal(st,len,mod,stab){
 function advance(){
   if(!S)return;
   if(S.over){endScreen();return;}
+  saveUndo();sfxAdvance();
   const c=S.confs[S.player];
   if(S.year>=c.tv.expires){ tvModal(true); return; }  // must sign before season runs
   runSeason();
@@ -1406,7 +1594,7 @@ function runSeason(){
     if(S.over==="dead"){renderAll();endScreen();return;}
     if(S.year>=S.endYear){renderAll();endScreen();return;}
     renderAll();
-    toast(`Season complete — welcome to ${S.year}.`);
+    toast(`Season complete — welcome to ${S.year}. ${S.ap} actions.`);
     animateMoves(S.moves);
     });
   });
@@ -1656,7 +1844,9 @@ function renderOffice(){
   const exitSub=document.querySelector("#uiExit + .s")||$("uiExit").parentElement.querySelector(".s");
   if(exitSub)exitSub.textContent=(c.chest||0)>=1?("war chest: "+fmtM(c.chest)):"per defector";
   const left=Math.max(0,c.tv.expires-S.year);
-  $("uiTvYears").textContent=left<=0?"EXPIRED — renegotiate":("expires "+c.tv.expires);
+  const tvLabel=$("uiTvYears");
+  tvLabel.textContent=left<=0?"EXPIRED — renegotiate":("expires "+c.tv.expires);
+  tvLabel.className=left<=1?"kbd expiring":"kbd";
   $("uiTvBar").style.width=Math.min(100,(left/Math.max(1,c.tv.len))*100)+"%";
   $("uiTvBar").style.background=left<=1?"var(--red)":left<=2?"var(--gold)":"var(--teal)";
   const fp=footprintInfo(footprintOf(members(S,S.player)));
@@ -1760,6 +1950,7 @@ function renderNews(){
 function renderAll(){
   S.schools.forEach(s=>{s.mood=Math.max(2,Math.min(98,s.mood));});  // event hits can briefly overshoot
   renderTop();renderOffice();renderMembers();renderStandings();renderActions();renderNews();drawDots();drawLegend();autosave();
+  const ub=$("undoBtn");if(ub)ub.disabled=!undoStack.length;
 }
 
 /* ---------- defection animation ---------- */
@@ -2035,6 +2226,8 @@ const ERA_OPENERS={
        `There is no script anymore. Whatever happens next, the sport is doing it to itself — starting with you.`]
 };
 function startGame(confId,daily,era){
+  undoStack=[];if(autoTimer)clearInterval(autoTimer);autoAdvance=false;
+  const ab=$("autoBtn");if(ab)ab.classList.remove("on");
   S=newState(confId,era);
   if(daily)S.daily=daily;
   const c=S.confs[S.player];
@@ -2057,7 +2250,9 @@ function showCoach(){
     ① Click any bubble — pitch outsiders, manage your own<br>
     ② Poach right before your TV deal expires, then re-sign rich<br>
     ③ Watch <b>The Wire</b> — rumors telegraph raids a year early<br>
-    ④ Drop under 6 schools and your league <b>dies</b>`;
+    ④ Drop under 6 schools and your league <b>dies</b><br>
+    <span style="margin-top:6px;display:block;color:var(--dim);font-size:10.5px">
+    <b>Keys:</b> Space = advance · Z = undo · M = mute · A = auto-play</span>`;
   $("mapPanel").appendChild(d);
   const dismiss=()=>{d.remove();try{localStorage.setItem("confwars_coach","1");}catch(e){}};
   d.querySelector("#coachX").addEventListener("click",dismiss);
@@ -2189,6 +2384,13 @@ function gameBadges(g){
   if(S.restored)b.push(["🎓","THE RESTORATION","regional Saturdays, scholarships first — the money went to the NFL"]);
   if(!g.dead&&S.confs.sl&&!S.confs.sl.dead&&!S.confs[S.player].slWin&&payoutOf(S,S.player)>payoutOf(S,"sl"))b.push(["🐐","OUT-EARNED THE EMPIRE","a mortal league beat the Super League's payout"]);
   if(!g.dead&&S.slFormed&&!S.confs[S.player].slWin&&g.soul>=88)b.push(["❤️","THE PEOPLE'S LEAGUE","America watches them on Tuesday. America loves you on Saturday."]);
+  const mem2=members(S,S.player);
+  if(!g.dead&&mem2.length>=20)b.push(["🏗","MEGA-CONFERENCE",mem2.length+" schools under one roof"]);
+  if(!g.dead&&mem2.length>0&&mem2.every(s=>s.mood>=65))b.push(["😊","EVERYBODY'S HAPPY","every member above 65 mood at the final whistle"]);
+  if(!g.dead&&S.ledger.filter(l=>l.toId===S.player).length>=15)b.push(["🧲","THE COLLECTOR","poached 15+ schools over the run"]);
+  const aauCount=mem2.filter(s=>s.aau).length;
+  if(!g.dead&&aauCount>=10)b.push(["🎓","BRAIN TRUST",aauCount+" AAU schools — an academic powerhouse"]);
+  if(!g.dead&&isG5(S.player)&&payoutOf(S,S.player)>payoutOf(S,"sec"))b.push(["💪","G5 DYNASTY","a mid-major league out-earning the SEC"]);
   return b;
 }
 function endChart(){
@@ -2247,7 +2449,7 @@ function epilogueText(g){
   return p.join(" ");
 }
 function endScreen(){
-  storClear();
+  storClear();sfxEnd();
   if(!S.over)S.over="done";
   const g=finalScore();
   const c=S.confs[S.player];
@@ -2316,8 +2518,11 @@ function endScreen(){
   $("againBtn").onclick=()=>{showPick();};
 }
 /* ---------- boot ---------- */
-$("btnAdvance").addEventListener("click",advance);
+$("btnAdvance").addEventListener("click",()=>{sfxClick();advance()});
 $("btnVault").addEventListener("click",vaultModal);
+$("undoBtn").addEventListener("click",doUndo);
+$("soundBtn").addEventListener("click",()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";sfxClick()});
+$("autoBtn").addEventListener("click",toggleAuto);
 document.querySelectorAll(".mbtn[data-mm]").forEach(b=>b.addEventListener("click",()=>{
   mapMode=b.dataset.mm;
   document.querySelectorAll(".mbtn[data-mm]").forEach(x=>x.classList.toggle("on",x===b));
@@ -2325,7 +2530,11 @@ document.querySelectorAll(".mbtn[data-mm]").forEach(b=>b.addEventListener("click
 }));
 $("btnRich").addEventListener("click",richModal);
 document.addEventListener("keydown",e=>{
-  if(e.code==="Space"&&$("shade").style.display!=="flex"){e.preventDefault();advance();}
+  if($("shade").style.display==="flex")return;
+  if(e.code==="Space"){e.preventDefault();advance();}
+  if(e.key==="z"||e.key==="Z")doUndo();
+  if(e.key==="m"||e.key==="M"){soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";sfxClick();}
+  if(e.key==="a"||e.key==="A")toggleAuto();
 });
 buildMapBase();
 initMapNav();
