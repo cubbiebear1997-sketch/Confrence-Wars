@@ -541,7 +541,8 @@ function newState(playerConf,era){
   const st={year:era, startYear:era, endYear:era+30, player:playerConf, ap:2, schools, confs, news:[], log:[],
     queue:[], ranks:[], over:false, aiBlock:0, slStarted:false, brandStart:0, titles:0, evtCd:{},
     champs:{}, ledger:[], daily:null, startRank:1, expels:0, slLost:0, slFormed:false, g5Natty:false,
-    fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false};
+    fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false,
+    slDiscovery:false, slHearings:false, slCoalition:false, slRaidSlow:1, empirePrestige:0, empireRivals:0};
   // opening TV deals (older conferences locked into older money)
   if(era===2005){
     const opening={b1g:[1.00,2007],sec:[1.05,2009],b12:[0.95,2011],acc:[0.90,2010],pac:[0.80,2011],be:[0.70,2008],
@@ -936,15 +937,22 @@ function seasonMoods(st){
   const cts={};
   for(const id of ALLC.concat(["g5"]))if(!st.confs[id].dead)cts[id]=centroid(st,id);
   for(const s of st.schools){
-    if(s.conf==="sl")continue;
+    if(s.conf==="sl"){
+      let d=rng()*4-5;
+      if(st.slCase>=1)d-=2;
+      if(st.slCase>=2)d-=3;
+      if(VOLATILE.has(s.abbr))d*=1.6+(rng()*0.4);
+      s.mood=Math.max(5,Math.min(98, s.mood+(45-s.mood)*0.06+d ));
+      continue;
+    }
     const pay=payoutOf(st,s.conf);
-    const natAvg=isG5(s.conf)?g5Avg:p5Avg;   // schools judge you against their tier
+    const natAvg=isG5(s.conf)?g5Avg:p5Avg;
     const expect=Math.max(isG5(s.conf)?0.5:3,natAvg*(s.brand/75));
     let d=Math.max(-12,Math.min(12,(pay/expect-1)*25));
     const c=st.confs[s.conf];
     if(c&&c.tv.expires-st.year>3)d+=1.5;
-    if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));  // travel weariness
-    if(s.gorUntil&&s.gorUntil>st.year)d-=1;                                     // GOR resentment drip
+    if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));
+    if(s.gorUntil&&s.gorUntil>st.year)d-=1;
     d+=(rng()*6-3);
     if(VOLATILE.has(s.abbr))d*=1.6+(rng()*0.4);
     s.mood=Math.max(5,Math.min(98, s.mood+(50-s.mood)*0.08+d ));
@@ -1334,21 +1342,42 @@ function yearEvents(st){
   if(y>=2030&&st.slStarted)slPressure(st);
   if(y>=2031&&st.slStarted)slRaid(st);
   if(y>=2031&&st.slStarted)bustCheck(st);
+  if(y>=2031&&st.slStarted)slDefections(st);
   if(y>=2031&&st.confs[st.player].slWin)queueEmpire(st);
 }
 function bustCheck(st){
   const sl=st.confs.sl;
   if(!sl||sl.dead||st.confs[st.player].slWin)return;
-  // co-plaintiffs pile on while the breakaway is stalling
-  if(rng()<0.35&&members(st,"sl").length<10){
-    st.slCase=(st.slCase||0)+0.5;
-    news(st,`⚖ ${insider()}: more leagues have quietly joined the antitrust suit against the Super League. The case grows teeth.`,"event");
+  if(rng()<0.3&&st.slCase<3){
+    st.slCase=(st.slCase||0)+0.4;
+    news(st,`⚖ ${insider()}: more leagues quietly join the antitrust suit. Case strength: ${st.slCase.toFixed(1)}/3.`,"event");
   }
-  if((st.slCase||0)>=3&&members(st,"sl").length<8&&st.year>=(st.slBirth||9999)+3){
+  if(st.slCase>=1&&!st.slDiscovery){
+    st.slDiscovery=true;
+    members(st,"sl").forEach(s=>s.mood=Math.max(5,s.mood-10));
+    news(st,`📋 <b>DISCOVERY PHASE.</b> The Super League's private emails are now public record. Side deals, threats, all of it. Their members are shaken.`,"event");
+    log(st,"Discovery phase: SL emails leaked");
+  }
+  if(st.slCase>=2&&!st.slHearings){
+    st.slHearings=true;
+    st.slRaidSlow=0.4;
+    members(st,"sl").forEach(s=>s.mood=Math.max(5,s.mood-8));
+    news(st,`🏛 <b>CONGRESSIONAL HEARINGS.</b> ${senName()} drags Super League executives in front of cameras. Their raids will slow to a crawl.`,"event");
+    log(st,"Congressional hearings: SL raids slowed");
+  }
+  if(st.slCase>=2){
+    for(const s of members(st,"sl")){
+      if(s.mood<42&&rng()<0.18){
+        moveSchool(st,s,"g5","jumped ship before the ruling");
+        news(st,`🚪 <b>${s.name} LEAVES the Super League!</b> The antitrust case is shaking them loose.`,"good");
+      }
+    }
+  }
+  if(st.slCase>=3&&st.year>=(st.slBirth||9999)+2){
     const scattered=members(st,"sl");
     sl.dead=true;sl.diedYr=st.year;st.slBusted=true;
     for(const s of scattered){s.conf="g5";s.mood=48;s.lastCourt=0;}
-    news(st,`⚖⚡ <b>THE SUPER LEAGUE IS DEAD.</b> The antitrust ruling lands, the investors flee, and ${scattered.length} blue-bloods hit the open market at once. The greatest free agency in the history of the sport starts NOW.`,"good");
+    news(st,`⚖⚡ <b>THE SUPER LEAGUE IS DEAD.</b> The antitrust ruling lands, the investors flee, and ${scattered.length} blue-bloods flood the open market. The greatest free agency in the sport starts NOW.`,"good");
     log(st,"Busted the Super League in court");
   }
 }
@@ -1370,26 +1399,104 @@ function playerRestore(st){
 function playerSueSL(st){
   spendAP(st,1);
   payCost(st,0.02,2);
-  st.slCase=(st.slCase||0)+1;
-  news(st,tmpl([`⚔️ Your lawyers file another four hundred pages against the Super League. ${senName()} promises hearings.`,
-    `⚔️ You bankroll the antitrust war. Their counsel bills by the hour; yours bills by the grudge.`,
-    `⚔️ Discovery time: the Super League's group chats are about to become public record.`]),"event");
-  log(st,`Funded the antitrust case (${Math.round(st.slCase*10)/10}/3)`);
+  const prev=st.slCase||0;
+  st.slCase=prev+1;
+  if(prev<1){
+    news(st,`⚔️ <b>THE CASE BEGINS.</b> Your lawyers file 400 pages. ${senName()} promises hearings. Discovery will open their emails to the world.`,"event");
+  }else if(prev<2){
+    news(st,`⚔️ <b>THE CASE BUILDS.</b> Another round of depositions. Their CFO's texts are on the congressional record now. Case: ${Math.round(st.slCase)}/3.`,"event");
+  }else{
+    news(st,`⚔️ <b>THE CASE IS AIRTIGHT.</b> The judge has seen enough. The Super League's lawyers are sending invoices with trembling hands. Case: ${Math.round(st.slCase)}/3.`,"event");
+  }
+  log(st,`Funded antitrust case (${Math.round(st.slCase)}/3)`);
+  if(rng()<0.45){
+    const myMem=members(st,st.player);
+    const target=pick(myMem.filter(s=>s.brand>=60));
+    if(target){
+      target.mood-=5;
+      news(st,`😤 The Super League leaks your internal finances in retaliation. <b>${target.name}</b>'s boosters ask pointed questions.`,"poach");
+    }
+  }
+  st.slRaidSlow=Math.max(0.3,1-st.slCase*0.2);
 }
 
-/* ---------- the endgame: what happens AFTER the throne ---------- */
-function slRaid(st){                       // the breakaway hunts, actively
+function playerRaidSL(st){
+  spendAP(st,2);
+  const slMem=members(st,"sl").filter(s=>s.mood<55).sort((a,b)=>a.mood-b.mood);
+  if(!slMem.length){toast("No unhappy SL members to target right now.");st.ap+=2;return;}
+  const tgt=slMem[0];
+  const chance=Math.min(75,30+(55-tgt.mood)*1.2+(st.slCase||0)*8);
+  if(rng()*100<chance){
+    moveSchool(st,tgt,st.player,"defected from the Super League");
+    tgt.mood=70;
+    news(st,`🎯 <b>${tgt.name} DEFECTS from the Super League</b> and joins the ${st.confs[st.player].name}! The empire cracks.`,"good");
+    log(st,`Recruited ${tgt.abbr} out of the SL`);
+  }else{
+    news(st,`😬 <b>${tgt.name}</b> listens to your pitch but can't break the Super League contract. Yet.`,"event");
+    tgt.mood-=3;
+    log(st,`Failed to recruit ${tgt.abbr} from SL`);
+  }
+}
+function playerCoalition(st){
+  spendAP(st,2);
+  payCost(st,0.03,2);
+  st.slCoalition=true;
+  st.slCase=(st.slCase||0)+0.5;
+  st.slRaidSlow=Math.max(0.3,(st.slRaidSlow||1)-0.2);
+  const allies=ALLC.filter(id=>id!==st.player&&!st.confs[id].dead&&!st.confs[id].slWin).length;
+  for(const id of ALLC){
+    if(id===st.player||st.confs[id].dead)continue;
+    members(st,id).forEach(s=>s.mood=Math.min(98,s.mood+4));
+  }
+  news(st,`🤝 <b>THE COALITION.</b> ${allies} conferences sign the mutual defense pact. Joint legal fund, shared scouting, a united front against the breakaway. The antitrust case picks up steam.`,"good");
+  log(st,"Formed the anti-Super League coalition");
+}
+function slDefections(st){
   if(!st.confs.sl||st.confs.sl.dead||st.confs[st.player].slWin)return;
-  const top=[...st.schools].filter(s=>s.conf!=="sl"&&s.conf!=="g5").sort((a,b)=>b.brand-a.brand).slice(0,6);
+  const slMem=members(st,"sl");
+  if(slMem.length<3)return;
+  for(const s of slMem){
+    if(s.mood<35&&rng()<0.12){
+      s.conf="g5";s.mood=40;s.lastCourt=0;
+      news(st,`🚪 <b>${s.name} quietly exits the Super League.</b> The empire shrinks.`,"event");
+      st.ledger.push({yr:st.year,ab:s.abbr,school:s.name,from:"Super League",to:"Independent",toId:"g5"});
+    }
+  }
+}
+/* ---------- the endgame: what happens AFTER the throne ---------- */
+function slRaid(st){
+  if(!st.confs.sl||st.confs.sl.dead||st.confs[st.player].slWin)return;
+  const slow=st.slRaidSlow||1;
+  if(rng()>slow)return;
+  const top=[...st.schools].filter(s=>s.conf!=="sl"&&s.conf!=="g5").sort((a,b)=>b.brand-a.brand).slice(0,8);
   const tgt=pick(top.filter(s=>!(s.conf===st.player&&(st.confs[st.player].fought>=st.year||st.confs[st.player].concordat))));
   if(!tgt)return;
   const a=acceptChance(st,tgt,"sl",{scripted:true});
-  if(tgt.conf===st.player)news(st,`⚠ The Super League is courting <b>${tgt.name}</b> with gold-bar money…`,"poach");
-  if(rng()*100<a.p)moveSchool(st,tgt,"sl","resistance was expensive");
-  else if(tgt.conf===st.player)news(st,`🛡 ${tgt.name} turns the Super League down. Loyalty still exists.`,"good");
+  if(tgt.conf===st.player){
+    if(rng()*100<a.p){
+      st.queue.push({type:"choice",spec:{
+        title:`The Super League wants ${tgt.name}`,sub:`${st.year} · active raid on your league`,
+        body:`<b>${tgt.name}</b> has a Super League term sheet on their desk. Brand ${Math.round(tgt.brand)}, mood ${Math.round(tgt.mood)}. They're listening.`,
+        opts:[
+          {label:"FIGHT FOR THEM",kbd:"−4% revenue 3 yrs · keep them · +10 mood",fn:()=>{
+            payCost(st,0.04,3);tgt.mood=Math.min(98,tgt.mood+10);
+            news(st,`🛡 You go to war for <b>${tgt.name}</b>. Matching the Super League's money hurts, but they stay.`,"good");log(st,`Fought to keep ${tgt.abbr}`);}},
+          {label:"LET THE MARKET DECIDE",kbd:`${Math.round(a.p)}% chance they leave`,fn:()=>{
+            if(rng()*100<a.p){moveSchool(st,tgt,"sl","the money was nuclear");
+              news(st,`💔 <b>${tgt.name} is gone.</b> The Super League's offer was generational.`,"poach");
+            }else{news(st,`🛡 <b>${tgt.name} stays!</b> Not every school has a price.`,"good");tgt.mood+=5;}}}
+        ]}});
+    } else {
+      news(st,`🛡 ${tgt.name} turns the Super League down cold.`,"good");
+    }
+  } else {
+    if(rng()*100<a.p)moveSchool(st,tgt,"sl","resistance was expensive");
+  }
 }
-function queueEmpire(st){                  // ruling is its own game
+function queueEmpire(st){
   const c=st.confs[st.player], mem=members(st,st.player);
+  st.empirePrestige=(st.empirePrestige||0)+1;
+  const yrsAsEmpire=st.year-(st.slBirth||st.year);
   if(mem.length>7&&(st.evtCd.invest===undefined||st.evtCd.invest+2<=st.year)&&rng()<0.65){
     st.evtCd.invest=st.year;
     const t=[...mem].sort((a,b)=>a.brand-b.brand)[0];
@@ -1410,50 +1517,114 @@ function queueEmpire(st){                  // ruling is its own game
   }
   const rivals=ALLC.filter(id=>!st.confs[id].dead&&id!==st.player);
   const second=Math.max(...rivals.map(id=>payoutOf(st,id)),1);
-  if(st.evtCd.trust===undefined&&payoutOf(st,st.player)>second*1.8){
+  if((st.evtCd.trust===undefined||st.evtCd.trust+4<=st.year)&&payoutOf(st,st.player)>second*1.5){
     st.evtCd.trust=st.year;
     st.queue.push({type:"choice",spec:{
       title:"Washington calls a hearing",sub:`${st.year} · the empire gets audited`,
       body:`Your league pays ${fmtM(payoutOf(st,st.player))}/school; nobody else clears ${fmtM(second)}. Congress smells a monopoly.`,
       opts:[
-        {label:"SETTLE — SHARE THE WEALTH",kbd:"−8% revenue for 3 yrs · the heat dies",fn:()=>{
-          c.pen.push({until:st.year+3,pct:0.08});
+        {label:"SETTLE — SHARE THE WEALTH",kbd:"−8% revenue for 3 yrs · the heat dies · +4 mood",fn:()=>{
+          c.pen.push({until:st.year+3,pct:0.08});mem.forEach(s=>s.mood=Math.min(98,s.mood+4));
           news(st,`🏛 You cut revenue-sharing checks to the little guys. The hearing ends politely.`,"event");log(st,"Settled with Congress");}},
-        {label:"FIGHT THE FEDS",kbd:"50% walk free · 50% −12% for 3 yrs",fn:()=>{
-          if(rng()<0.5){news(st,`🏛 Your lawyers shred the antitrust case. Untouchable.`,"good");log(st,"Beat the antitrust case");}
-          else{c.pen.push({until:st.year+3,pct:0.12});news(st,`🏛 The feds win. Forced revenue sharing, three years.`,"poach");log(st,"Lost the antitrust case");}}}
+        {label:"FIGHT THE FEDS",kbd:"50% walk free · 50% −12% for 3 yrs + members −6 mood",fn:()=>{
+          if(rng()<0.5){news(st,`🏛 Your lawyers shred the antitrust case. Untouchable.`,"good");log(st,"Beat the antitrust case");st.empirePrestige+=2;}
+          else{c.pen.push({until:st.year+3,pct:0.12});mem.forEach(s=>s.mood=Math.max(5,s.mood-6));news(st,`🏛 The feds win. Forced revenue sharing, three years. The members grumble.`,"poach");log(st,"Lost the antitrust case");}}}
       ]}});
   }
-  if(rng()<0.4&&mem.length>=10&&(st.evtCd.revolt===undefined||st.evtCd.revolt+3<=st.year)){
+  if(rng()<0.5&&mem.length>=8&&(st.evtCd.revolt===undefined||st.evtCd.revolt+2<=st.year)){
     st.evtCd.revolt=st.year;
     const unhappy=mem.filter(s=>s.mood<50);
-    if(unhappy.length>=3){
+    if(unhappy.length>=2){
       st.queue.push({type:"choice",spec:{
         title:"Member revolt brewing",sub:`${st.year} · the empire frays`,
-        body:`${unhappy.length} of your schools are openly unhappy. Boosters are meeting without you. Do something, or watch them walk.`,
+        body:`${unhappy.length} of your schools are openly unhappy. ${unhappy.map(s=>'<b>'+s.abbr+'</b>').join(', ')} — boosters are meeting without you.`,
         opts:[
-          {label:"EMERGENCY REVENUE SHARE",kbd:"+10 mood all unhappy · −5% rev for 2 yrs",fn:()=>{
-            c.pen.push({until:st.year+2,pct:0.05});unhappy.forEach(s=>s.mood=Math.min(98,s.mood+10));
+          {label:"EMERGENCY REVENUE SHARE",kbd:"+12 mood all unhappy · −5% rev for 2 yrs",fn:()=>{
+            c.pen.push({until:st.year+2,pct:0.05});unhappy.forEach(s=>s.mood=Math.min(98,s.mood+12));
             news(st,`💸 You open the vault to calm the rebels. Expensive, but the empire holds.`,"money");log(st,"Paid off unhappy members");}},
           {label:"LET THEM TALK",kbd:"Risky — unhappy schools may leave",fn:()=>{
-            unhappy.forEach(s=>{if(rng()<0.3){moveSchool(st,s,"g5","had enough of empire life");s.mood=25;}});
+            unhappy.forEach(s=>{if(rng()<0.35){moveSchool(st,s,"g5","had enough of empire life");s.mood=25;}});
             news(st,`🚪 You called their bluff. Some of them weren't bluffing.`,"poach");log(st,"Ignored the member revolt");}}
         ]}});
     }
   }
-  if(rng()<0.3&&(st.evtCd.intlSL===undefined||st.evtCd.intlSL+4<=st.year)){
+  if(rng()<0.4&&(st.evtCd.intlSL===undefined||st.evtCd.intlSL+3<=st.year)){
     st.evtCd.intlSL=st.year;
     st.queue.push({type:"choice",spec:{
       title:"International expansion offer",sub:`${st.year} · the empire goes global`,
       body:`A European broadcast consortium wants exclusive Super League content. Massive money, but your members would play games at 9 AM local time.`,
       opts:[
         {label:"SIGN THE DEAL",kbd:"+12% media rev · all members −6 mood",fn:()=>{
-          c.tv.rate*=1.12;mem.forEach(s=>s.mood=Math.max(5,s.mood-6));
+          c.tv.rate*=1.12;mem.forEach(s=>s.mood=Math.max(5,s.mood-6));st.empirePrestige+=2;
           news(st,`🌍 The Super League goes global. London games, Tokyo games, 9 AM kickoffs in Tuscaloosa.`,"money");log(st,"Signed international deal");}},
         {label:"STAY DOMESTIC",kbd:"Members +4 mood · no revenue change",fn:()=>{
           mem.forEach(s=>s.mood=Math.min(98,s.mood+4));
           news(st,`🏠 You keep Saturday where it belongs. The fanbase exhales.`,"good");log(st,"Rejected international expansion");}}
       ]}});
+  }
+  if(rng()<0.45&&(st.evtCd.streaming===undefined||st.evtCd.streaming+3<=st.year)){
+    st.evtCd.streaming=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"The streaming wars want you",sub:`${st.year} · platform bidding war`,
+      body:`Two streaming giants are bidding for your league's exclusive digital rights. The money is obscene, but traditional TV fans can't watch.`,
+      opts:[
+        {label:"GO EXCLUSIVE STREAMING",kbd:"+18% media rev · −10 mood all (fans revolt)",fn:()=>{
+          c.tv.rate*=1.18;mem.forEach(s=>s.mood=Math.max(5,s.mood-10));st.empirePrestige+=1;
+          news(st,`📱 The Super League goes streaming-exclusive. Grandpa can't find the game. The check clears anyway.`,"money");log(st,"Signed streaming-exclusive deal");}},
+        {label:"HYBRID DEAL",kbd:"+6% media rev · members +3 mood",fn:()=>{
+          c.tv.rate*=1.06;mem.forEach(s=>s.mood=Math.min(98,s.mood+3));
+          news(st,`📺 You split the baby: streaming and traditional. Everyone gets something, nobody gets everything.`,"event");log(st,"Signed hybrid streaming deal");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=2&&rng()<0.35&&(st.evtCd.coalRival===undefined||st.evtCd.coalRival+3<=st.year)){
+    st.evtCd.coalRival=st.year;
+    const numRivals=rivals.filter(id=>members(st,id).length>=6).length;
+    st.empireRivals=(st.empireRivals||0)+1;
+    st.queue.push({type:"choice",spec:{
+      title:"A rival coalition forms",sub:`${st.year} · the rest of the sport pushes back`,
+      body:`${numRivals} conferences announce a mutual-aid pact, pooling legal resources and scheduling against you. Their combined brand power is growing.`,
+      opts:[
+        {label:"POACH THEIR BEST",kbd:"Raid the coalition · top school 60% joins you · others −8 mood",fn:()=>{
+          const pool=st.schools.filter(s=>s.conf!==st.player&&s.conf!=="g5"&&s.conf!=="sl").sort((a,b)=>b.brand-a.brand);
+          const t=pool[0];
+          if(t&&rng()<0.6){moveSchool(st,t,st.player,"empire called");news(st,`👑 <b>${t.name}</b> abandons the coalition and joins your empire. Money talks.`,"good");log(st,`Poached ${t.abbr} from the coalition`);}
+          else{mem.forEach(s=>s.mood=Math.max(5,s.mood-4));news(st,`😤 The coalition holds firm. Your aggression backfires — your own members are nervous.`,"poach");}
+          rivals.forEach(id=>{members(st,id).forEach(s=>s.mood=Math.max(5,s.mood-8));});}},
+        {label:"IGNORE THEM",kbd:"Coalition grows stronger · +3 mood your members",fn:()=>{
+          mem.forEach(s=>s.mood=Math.min(98,s.mood+3));
+          news(st,`🤷 You let the little leagues play their games. Your members appreciate the confidence.`,"event");log(st,"Ignored rival coalition");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=3&&rng()<0.3&&(st.evtCd.fanRevolt===undefined||st.evtCd.fanRevolt+4<=st.year)){
+    st.evtCd.fanRevolt=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"Fan attendance is cratering",sub:`${st.year} · the stadiums are half-empty`,
+      body:`Cross-country travel, 9 PM kickoffs, streaming-only games — the students stopped coming. Stadium revenue is down 20%. The product on the field is elite, but the stands tell a different story.`,
+      opts:[
+        {label:"REGIONAL SCHEDULING BLOCK",kbd:"+8 mood all · −4% revenue 2 yrs",fn:()=>{
+          c.pen.push({until:st.year+2,pct:0.04});mem.forEach(s=>s.mood=Math.min(98,s.mood+8));
+          news(st,`🏟 You carve out a regional scheduling block: bus-trip rivalries return. Attendance rebounds.`,"good");log(st,"Added regional scheduling block");}},
+        {label:"DOUBLE DOWN ON TV",kbd:"+8% media · −12 mood all",fn:()=>{
+          c.tv.rate*=1.08;mem.forEach(s=>s.mood=Math.max(5,s.mood-12));
+          news(st,`📺 You tell the fans to buy a streaming subscription. The check is bigger. The stadiums echo.`,"money");log(st,"Ignored fan attendance crisis");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=2&&rng()<0.25&&(st.evtCd.nilCrisis===undefined||st.evtCd.nilCrisis+3<=st.year)){
+    st.evtCd.nilCrisis=st.year;
+    const bigName=pick(mem.filter(s=>s.brand>=75));
+    if(bigName){
+      st.queue.push({type:"choice",spec:{
+        title:"NIL arms race out of control",sub:`${st.year} · the players want more`,
+        body:`<b>${bigName.name}</b>'s star quarterback demands $12M or he transfers. Every school in your league is bidding against itself. The players have leverage — and they know it.`,
+        opts:[
+          {label:"CAP NIL SPENDING",kbd:"−6 mood all · +4% league savings 2 yrs",fn:()=>{
+            mem.forEach(s=>s.mood=Math.max(5,s.mood-6));c.pen.push({until:st.year+2,pct:-0.04});
+            news(st,`💼 You impose an NIL salary cap. The players' union files a grievance. The accountants breathe.`,"event");log(st,"Capped NIL spending");}},
+          {label:"LET THE MARKET DECIDE",kbd:"Top brands −3 each · members −4 mood",fn:()=>{
+            mem.filter(s=>s.brand>=70).forEach(s=>{s.brand=Math.max(50,s.brand-3);});mem.forEach(s=>s.mood=Math.max(5,s.mood-4));
+            news(st,`💸 The NIL market goes nuclear. Your richest programs are spending like NFL franchises — and it's not sustainable.`,"money");log(st,"Let NIL market run wild");}}
+        ]}});
+    }
   }
 }
 
@@ -1461,13 +1632,29 @@ function top16(st){return [...st.schools].sort((a,b)=>b.brand-a.brand).slice(0,1
 
 function slPressure(st){
   if(!st.confs.sl||st.confs.sl.dead){return;}
+  const slow=st.slRaidSlow||1;
   for(const s of top16(st)){
     if(s.conf==="sl")continue;
     const c=st.confs[s.conf];
     if(s.conf===st.player&&(c.fought>=st.year||c.concordat))continue;
     if(c&&c.slWin)continue;
-    if(s.mood<52&&rng()<0.22){
-      moveSchool(st,s,"sl","the breakaway comes calling");
+    const chance=0.22*slow;
+    if(s.mood<52&&rng()<chance){
+      if(s.conf===st.player){
+        st.queue.push({type:"choice",spec:{
+          title:`${s.name} has a Super League offer`,sub:`${st.year} · defend or lose them`,
+          body:`<b>${s.name}</b> (brand ${Math.round(s.brand)}, mood ${Math.round(s.mood)}) got the call. The Super League is offering generational money. You can counter — but it'll cost you.`,
+          opts:[
+            {label:"COUNTER-OFFER",kbd:"−3% revenue 2 yrs · keep them · +12 mood",fn:()=>{
+              payCost(st,0.03,2);s.mood=Math.min(98,s.mood+12);
+              news(st,`🛡 You open the vault and counter the Super League's offer to <b>${s.name}</b>. They stay. For now.`,"good");log(st,`Counter-offered to keep ${s.abbr}`);}},
+            {label:"LET THEM GO",kbd:`${s.name} joins the Super League`,fn:()=>{
+              moveSchool(st,s,"sl","the money was too loud");
+              news(st,`💔 <b>${s.name}</b> leaves for the Super League. The pitch was generational; the loyalty was seasonal.`,"poach");}}
+          ]}});
+      } else {
+        moveSchool(st,s,"sl","the breakaway comes calling");
+      }
     }
   }
 }
@@ -1676,17 +1863,18 @@ function finalScore(){
   const maxPay=Math.max(...alive.map(id=>payoutOf(S,id)),1);
   const myPay=payoutOf(S,S.player);
   const brandRatio=Math.min(1.4,confBrand(S,S.player)/Math.max(1,S.brandStart));
-  const climbPts=Math.max(0,Math.min(18,(S.startRank-avgRank)*5));   // underdogs get graded on the climb
+  const climbPts=Math.max(0,Math.min(18,(S.startRank-avgRank)*5));
   const rankPts=40*(1-(avgRank-1)/Math.max(1,alive.length-1));
   const payPts=28*(myPay/maxPay);
   const brandPts=14*(brandRatio/1.4);
   const titlePts=Math.min(8,S.titles*2);
   const slPts=c.slWin?8:0;
-  const bustPts=S.slBusted?6:0;
-  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts));
+  const bustPts=S.slBusted?8:0;
+  const coalPts=S.slCoalition?2:0;
+  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts+coalPts));
   const grade=letterOf(score);
   const soul=soulScore();
-  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,soul,soulGrade:letterOf(soul)};
+  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,coalPts,soul,soulGrade:letterOf(soul)};
 }
 
 /* ============================================================
@@ -1762,7 +1950,7 @@ function drawDots(){
         <div class="row"><span>Mood</span><span style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}</span></div>`;
     });
     c.addEventListener("mouseleave",()=>tip.style.display="none");
-    c.addEventListener("click",()=>{ if(dragMoved||S.over)return; if(s.conf===S.player)memberModal(s); else if(s.conf!=="sl")courtModal(s); });
+    c.addEventListener("click",()=>{ if(dragMoved||S.over)return; if(s.conf===S.player)memberModal(s); else if(s.conf==="sl")slSchoolModal(s); else courtModal(s); });
     g.appendChild(c);
     if(!ghost){
       const t=el("text",{x,y:y-r-4,fill:"#9db4d6","font-size":9,"font-weight":700,"text-anchor":"middle"});
@@ -1953,7 +2141,9 @@ function renderActions(){
     {ic:"🔒",tt:"Grant of Rights",td:gorActive?"Locked through "+c.gorLabel:avgMood>=60?"Lock everyone's rights for 8 yrs (needs happy league)":"Needs avg mood 60+ (now "+Math.round(avgMood)+")",ap:1,ok:canAct(S,1)&&!gorActive&&avgMood>=60,fn:()=>{playerGor(S);renderAll();}},
     {ic:"🏟",tt:"Title game",td:c.ccg?"Playing every December":mem.length>=8?"Permanent +4% media revenue":"Needs 8+ members",ap:1,ok:canAct(S,1)&&!c.ccg&&mem.length>=8,fn:()=>{playerCcg(S);renderAll();}},
     ...((S.confs.sl&&!S.confs.sl.dead&&!c.slWin&&!c.concordat)?[
-      {ic:"⚔️",tt:"Fund the antitrust war",td:"Case "+((S.slCase||0).toFixed(1))+"/3 — busts them if they're still under 8 members",ap:1,ok:canAct(S,1),fn:()=>{playerSueSL(S);renderAll();}},
+      {ic:"⚔️",tt:"Fund the antitrust war",td:"Case "+((S.slCase||0).toFixed(1))+"/3"+(S.slDiscovery?" · DISCOVERY":"")+(S.slHearings?" · HEARINGS":"")+" — hits 3 and they're done",ap:1,ok:canAct(S,1),fn:()=>{playerSueSL(S);renderAll();}},
+      {ic:"🎯",tt:"Raid the Super League",td:members(S,"sl").filter(s=>s.mood<55).length?"Recruit an unhappy SL member ("+members(S,"sl").filter(s=>s.mood<55).length+" unhappy)":"No unhappy SL members to target",ap:2,ok:canAct(S,2)&&members(S,"sl").filter(s=>s.mood<55).length>0,fn:()=>{playerRaidSL(S);renderAll();}},
+      ...(!S.slCoalition?[{ic:"🛡",tt:"Form the Coalition",td:"Unite all conferences against the SL — joint defense, shared legal fund, slows raids",ap:2,ok:canAct(S,2),fn:()=>{playerCoalition(S);renderAll();}}]:[]),
       {ic:"🤝",tt:"Sign the Concordat",td:"Become their partner: +18% media forever, immunity — and a leash",ap:2,ok:canAct(S,2),fn:()=>{playerConcordat(S);renderAll();}}
     ]:[]),
     ...((!S.restored&&!c.concordat&&!c.slWin&&(S.slBusted||(!S.slFormed&&S.year>=2033)))?[(()=>{
@@ -1970,6 +2160,21 @@ function renderActions(){
       const ready=mine>=5&&rk===1;
       return {ic:"👑",tt:"Form the Super League",td:ready?"Declare the breakaway — you ARE the future (+30% media forever)":"Needs 5+ of the top-16 brands (have "+mine+") and the #1 payout (now #"+rk+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerFormSL(S);renderAll();}};
     })()]:[]),
+    ...(c.slWin?[
+      {ic:"👑",tt:"Absorb a rival's star",td:"Poach the top brand from a rival conference",ap:2,ok:canAct(S,2),fn:()=>{
+        const pool=S.schools.filter(s=>s.conf!==S.player&&s.conf!=="g5"&&s.conf!=="sl"&&!S.confs[s.conf].dead).sort((a,b)=>b.brand-a.brand);
+        const t=pool[0];if(!t){toast("No targets available.");return;}
+        spendAP(S,2);
+        if(rng()<0.55){moveSchool(S,t,S.player,"the empire called");news(S,`👑 <b>${t.name} joins your empire.</b> The rest of the sport takes notes.`,"good");log(S,`Absorbed ${t.abbr} into the empire`);S.empirePrestige++;}
+        else{news(S,`😤 <b>${t.name}</b> rejects the empire's invitation. Not everyone bows.`,"event");log(S,`${t.abbr} rejected the empire`);}
+        renderAll();}},
+      {ic:"💪",tt:"Empire showcase",td:"Host a marquee event: +3 brand to top 5 members, +prestige",ap:1,ok:canAct(S,1),fn:()=>{
+        spendAP(S,1);payCost(S,0.02,1);
+        const top5=members(S,S.player).sort((a,b)=>b.brand-a.brand).slice(0,5);
+        top5.forEach(s=>{s.brand=Math.min(99,s.brand+3);});S.empirePrestige+=2;
+        news(S,`🏟 <b>The Empire Showcase.</b> Prime time, every network. Your top programs shine. Brand power rises.`,"good");
+        log(S,"Hosted the Empire Showcase");renderAll();}}
+    ]:[]),
     {ic:"⚖️",tt:"Raise exit fee",td:"+$20M — deters poachers, annoys members",ap:1,ok:canAct(S,1),fn:()=>{playerExitFee(S);renderAll();}},
     {ic:"💸",tt:"Cut bonus checks",td:(c.chest||0)>=16?"Distribute the "+fmtM(c.chest)+" war chest — members +mood":"War chest too thin ("+fmtM(c.chest||0)+")",ap:1,ok:canAct(S,1)&&(c.chest||0)>=16,fn:()=>{playerBonus(S);renderAll();}},
     {ic:"📺",tt:"Launch conference network",td:c.network?"Already on the air":"Multiply your media rate (2007+)",ap:2,ok:canAct(S,2)&&!c.network&&S.year>=2007,fn:()=>{playerNetwork(S);renderAll();}},
@@ -2061,6 +2266,38 @@ function targetPicker(){
       courtModal(s);
     });
   });
+}
+function slSchoolModal(s){
+  if(!S||S.over)return;
+  const mc=s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)";
+  const canRaid=!S.confs[S.player].slWin&&!S.confs[S.player].concordat&&s.mood<55&&canAct(S,2);
+  const chance=canRaid?Math.min(75,30+(55-s.mood)*1.2+(S.slCase||0)*8):0;
+  showModal(`<h2 style="color:var(--gold)">Super League · ${s.name}</h2>
+    <div class="sub">Brand ${Math.round(s.brand)} · Market ${s.market}</div>
+    <div class="mrow"><span>Mood</span><span style="color:${mc};font-weight:700">${Math.round(s.mood)}</span></div>
+    <div class="mrow"><span>Status</span><span style="color:var(--gold)">Super League member</span></div>
+    ${s.mood<55?`<div class="mrow"><span>Unhappy?</span><span style="color:var(--red)">YES — vulnerable to recruitment</span></div>`:`<div class="mrow"><span>Satisfied</span><span style="color:var(--green)">Content in the SL for now</span></div>`}
+    ${canRaid?`<div class="mrow"><span>Est. defection chance</span><span style="color:${chance>=40?"var(--green)":"var(--gold)"}"><b>${Math.round(chance)}%</b></span></div>`:""}
+    <div class="btnRow">
+      ${canRaid?`<button class="btn-cta" id="raidSL">RECRUIT THEM — 2 AP</button>`:""}
+      <button class="btn-ghost" onclick="hideModal()">Close</button></div>`);
+  if(canRaid){
+    $("raidSL").addEventListener("click",()=>{
+      spendAP(S,2);
+      if(rng()*100<chance){
+        moveSchool(S,s,S.player,"defected from the Super League");s.mood=70;
+        news(S,`🎯 <b>${s.name} DEFECTS from the Super League</b> and joins the ${S.confs[S.player].name}!`,"good");
+        log(S,`Recruited ${s.abbr} out of the SL`);
+        toast(`${s.name} is IN. Welcome home.`);
+      }else{
+        s.mood-=3;
+        news(S,`😬 ${s.name} listens but stays in the Super League. For now.`,"event");
+        log(S,`Failed to recruit ${s.abbr} from SL`);
+        toast(`${s.name} said no. The contract is too tight.`);
+      }
+      hideModal();renderAll();
+    });
+  }
 }
 function courtModal(s){
   if(!canAct(S,1)){toast("No actions left this offseason.");return;}
@@ -2247,16 +2484,22 @@ function superLeagueModal(done){
       <div class="btnRow"><button class="btn-cta" id="slk">TAKE THE THRONE</button></div>`);
     $("slk").onclick=()=>{news(S,"👑 <b>Your league becomes the spine of the Super League.</b> Everyone else fights for scraps.","good");log(S,"Became the Super League");hideModal();done();};
   } else {
+    const slMem=top16(S).filter(s=>s.conf!==S.player).length;
     showModal(`<h2>⚡ The Super League Ultimatum</h2>
       <div class="sub">2030 · a private-equity-backed breakaway targets the top 16 brands</div>
-      <div class="body">Sixteen blue-bloods are invited to a breakaway "Super League" — including <b>${mine}</b> of yours. Restless members will start defecting each season.</div>
+      <div class="body">Private equity is bankrolling a breakaway "Super League" — ${slMem} schools outside your league and <b>${mine} of yours</b> are on the invite list. They're offering 3x the money. Your members are listening.<br><br>
+      <b>If you fight:</b> You'll get protection for 3 years, then you'll need to fund the antitrust case (3 filings to bust them), raid their unhappy members, and build a coalition. It's a war — but it's winnable.<br><br>
+      <b>If you don't fight:</b> They'll pick your league apart year by year.</div>
       <div class="btnRow">
-        <button class="btn-cta" id="s1">FIGHT IT<br><span class="kbd">+8 mood all members · rivals frozen 2 yrs · your top brands protected 3 yrs</span></button>
-        <button class="btn-ghost" id="s2">LET HISTORY HAPPEN<br><span class="kbd">hold on tight</span></button>
+        <button class="btn-cta" id="s1">FIGHT IT<br><span class="kbd">+8 mood · 3 yr protection · unlocks antitrust case, coalition, SL raids</span></button>
+        <button class="btn-ghost" id="s2">LET HISTORY HAPPEN<br><span class="kbd">watch the blue-bloods leave, one by one</span></button>
       </div>`);
     $("s1").onclick=()=>{S.confs[S.player].fought=S.year+3;S.aiBlock=2;members(S,S.player).forEach(m=>m.mood+=8);
-      news(S,"✊ You organize the resistance. Lawsuits fly; the breakaway slows.","good");log(S,"Fought the Super League");hideModal();done();};
-    $("s2").onclick=()=>{news(S,"⚡ The Super League begins signing blue-bloods.","poach");log(S,"Let the Super League form");hideModal();done();};
+      S.slRaidSlow=0.7;
+      news(S,"✊ <b>You organize the resistance.</b> Lawsuits filed, coalition calls made, your brands are protected for three years. The antitrust war begins.","good");
+      news(S,"📋 <b>NEW ACTIONS UNLOCKED:</b> Fund the antitrust case (3 filings to bust the SL), Raid the Super League (poach unhappy members), Form the Coalition (slow their raids).","event");
+      log(S,"Fought the Super League");hideModal();done();};
+    $("s2").onclick=()=>{news(S,"⚡ The Super League begins signing blue-bloods. Your members start taking calls.","poach");log(S,"Let the Super League form");hideModal();done();};
   }
 }
 /* ---------- pick + end ---------- */
@@ -2424,8 +2667,11 @@ function gameBadges(g){
   if(!g.dead&&g.soul>=84)b.push(["🏡","STUDENTS FIRST","regional, loyal, beloved — football the way it was supposed to work"]);
   if(!g.dead&&g.soul<=35&&(g.grade==="S"||g.grade[0]==="A"))b.push(["🕴","SOLD ITS SOUL","rich beyond measure; beloved by no one"]);
   if(S.slBusted)b.push(["⚔️","TRUST BUSTER","the Super League died in court — because of you"]);
+  if(S.slCoalition&&S.slBusted)b.push(["🛡","COALITION LEADER","united the sport and won"]);
+  if(S.slBusted&&S.slLost===0)b.push(["💪","UNTOUCHABLE","busted the SL without losing a single member"]);
   if(S.confs[S.player].concordat)b.push(["🤝","THE CONCORDAT","affiliated, protected, compromised"]);
   if(S.restored)b.push(["🎓","THE RESTORATION","regional Saturdays, scholarships first — the money went to the NFL"]);
+  if(S.confs[S.player].slWin&&(S.empirePrestige||0)>=8)b.push(["🌍","GLOBAL EMPIRE","your league transcended the sport"]);
   if(!g.dead&&S.confs.sl&&!S.confs.sl.dead&&!S.confs[S.player].slWin&&payoutOf(S,S.player)>payoutOf(S,"sl"))b.push(["🐐","OUT-EARNED THE EMPIRE","a mortal league beat the Super League's payout"]);
   if(!g.dead&&S.slFormed&&!S.confs[S.player].slWin&&g.soul>=88)b.push(["❤️","THE PEOPLE'S LEAGUE","America watches them on Tuesday. America loves you on Saturday."]);
   const mem2=members(S,S.player);
@@ -2484,9 +2730,20 @@ function epilogueText(g){
       :g.grade[0]==="B"?`A tenure worth a statue. A modest statue, but bronze is bronze.`
       :g.grade[0]==="C"?`You survived the most predatory era the sport ever saw. That is not nothing.`
       :`The less said about the money, the better.`);
-    if(S.slBusted)p.push(`They built a Super League. You buried it in court filings.`);
+    if(S.slBusted){
+      p.push(`They built a Super League. You buried it in court filings.`);
+      if(S.slCoalition)p.push(`The coalition you assembled — every conference, one legal front — was the weapon that ended it.`);
+      const slRaided=S.ledger.filter(l=>l.from==="Super League"&&l.toId===S.player);
+      if(slRaided.length)p.push(`You didn't just beat them — you poached ${slRaided.length} of their schools on the way down.`);
+    }
     if(S.restored)p.push(`Then you did the thing nobody believed possible: sent the money to the NFL and kept the Saturdays for the kids.`);
     if(S.confs[S.player].concordat)p.push(`The Concordat kept your league rich and whole. What it cost doesn't show up on the wire transfer.`);
+    if(S.confs[S.player].slWin){
+      const ep=S.empirePrestige||0;
+      if(ep>=8)p.push(`The empire went global. London, Tokyo, the streaming wars — you won them all.`);
+      else if(ep>=4)p.push(`The empire held. Not without scars, but the throne is still yours.`);
+      else p.push(`The empire survived, barely. The throne wobbles, but it stands.`);
+    }
     if(g.soul>=84)p.push(`And the miracle: you did it without selling the thing itself — bus rides, blood rivals, kids first. Somewhere, a 1975 athletic director nods.`);
     else if(g.soul<=35&&g.grade[0]<="B")p.push(`The money is generational. The soul is a line item.`);
   }
@@ -2527,7 +2784,8 @@ function endScreen(){
       ["THE CLIMB",g.climbPts,18,"started #"+S.startRank+" — every rank you finish above it pays"],
       ["TITLES",g.titlePts,8,S.titles+" national championship"+(S.titles===1?"":"s")+" (+2 each)"],
       ...(g.slPts?[["SUPER LEAGUE",g.slPts,8,"you took the throne"]]:[]),
-      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,6,"you killed the Super League in court"]]:[])
+      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,8,"you killed the Super League in court"]]:[]),
+      ...(g.coalPts?[["COALITION LEADER",g.coalPts,2,"you united the sport against the breakaway"]]:[])
     ].map(r=>`<div class="mrow" style="border-bottom:1px solid #1e3a5f44">
       <span style="width:118px;flex:none;font-size:10.5px;letter-spacing:1.2px;font-weight:800;color:var(--dim)">${r[0]}</span>
       <span style="flex:1;color:#a9bcd9;font-size:11.5px">${r[3]}</span>
