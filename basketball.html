@@ -60,7 +60,10 @@
   .mem .br{font-size:10.5px;color:var(--dim);width:26px;text-align:right;font-variant-numeric:tabular-nums}
   #center{display:flex;flex-direction:column;gap:12px;min-height:0}
   #mapPanel{flex:1;min-height:0;position:relative;overflow:hidden}
-  #mapPanel svg{width:100%;height:100%;display:block}
+  #mapPanel svg{width:100%;height:100%;display:block;cursor:grab}
+  #mapPanel svg.dragging{cursor:grabbing}
+  #zoomCtl{position:absolute;right:12px;top:42px;display:flex;flex-direction:column;gap:6px;z-index:5}
+  .zbtn{width:34px;height:34px;padding:0;font-size:17px;font-weight:800;background:#0d0f1ad9;border:1px solid var(--line);border-radius:8px}
   #legend{position:absolute;left:12px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;max-width:85%;z-index:5}
   .lg{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--dim);background:#0d0f1acc;border:1px solid var(--line);border-radius:6px;padding:3px 8px;cursor:pointer;transition:border-color .15s}
   .lg i{width:8px;height:8px;border-radius:50%}
@@ -177,8 +180,13 @@
     </div>
     <div id="center">
       <div class="panel" id="mapPanel">
-        <div class="ph">Conference Map <span class="right kbd">click a conference below to view</span></div>
-        <svg id="map" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="ph">The Landscape <span class="right kbd">hover legend to highlight · click for roster</span></div>
+        <svg id="map" viewBox="0 0 980 600" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="zoomCtl">
+          <button class="zbtn" id="zIn" title="Zoom in">+</button>
+          <button class="zbtn" id="zOut" title="Zoom out">−</button>
+          <button class="zbtn" id="zReset" title="Reset view">⟲</button>
+        </div>
         <div id="legend"></div>
         <div id="tip"></div>
       </div>
@@ -200,7 +208,6 @@
   </div>
 </div>
 <div id="shade"><div id="modal"></div></div>
-<div id="tip"></div>
 <div id="toast"></div>
 
 <script>
@@ -319,6 +326,8 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let rng=Math.random;
 const $=id=>document.getElementById(id);
 const fmtM=v=>"$"+(v>=1000?(v/1000).toFixed(1)+"B":v>=10?Math.round(v)+"M":Math.max(0,v).toFixed(1)+"M");
+const OUTLINE=[[48.4,-124.7],[46.2,-124.0],[43.0,-124.4],[40.4,-124.4],[38.9,-123.7],[36.6,-121.9],[34.45,-120.45],[33.7,-118.3],[32.55,-117.1],[32.7,-114.7],[31.33,-111.07],[31.33,-108.2],[31.78,-108.2],[31.78,-106.5],[29.7,-104.5],[29.2,-103.1],[29.8,-101.4],[27.5,-99.5],[25.9,-97.15],[28.0,-96.8],[29.3,-94.8],[29.2,-90.1],[30.2,-88.0],[30.4,-86.5],[29.9,-84.3],[28.0,-82.8],[26.7,-82.2],[25.2,-81.1],[25.1,-80.4],[26.7,-80.0],[28.5,-80.6],[30.7,-81.4],[32.0,-80.8],[33.9,-77.9],[35.2,-75.5],[36.9,-76.0],[38.0,-75.0],[39.3,-74.3],[40.5,-74.0],[41.1,-71.9],[41.6,-70.0],[42.05,-70.2],[43.1,-70.6],[44.8,-66.95],[47.3,-68.3],[45.3,-71.3],[45.0,-74.6],[44.1,-76.5],[43.3,-79.0],[42.9,-78.9],[42.3,-80.0],[41.7,-82.4],[42.1,-83.1],[43.6,-82.5],[45.8,-84.7],[46.5,-84.5],[48.0,-89.5],[48.0,-95.2],[49.0,-95.15],[49.0,-124.7]];
+const proj=(lat,lon)=>[(lon+126)*(940/60)+15,(50-lat)*(560/26)+10];
 
 let S=null;
 
@@ -985,8 +994,8 @@ function cropRefresh(st){
 }
 function playerPromote(st,row,brandOverride){
   spendAP(st,2);
-  const s={id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],brand:brandOverride||row[3],
-    color:row[5],conf:st.player,orig:st.player,aau:false,mood:88,ind:false,lastCourt:st.year};
+  const s={id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],brand:brandOverride||row[4],
+    color:row[6],conf:st.player,orig:st.player,aau:false,mood:88,ind:false,lastCourt:st.year};
   st.schools.push(s);
   st.mmUsed.push(row[0]);st.lastMm=st.year;
   st.mmCrop=null;
@@ -1087,58 +1096,52 @@ const inkFor=s=>lum(s.color||"#555")>0.45?"#111":("#fff");
 const confHex=cid=>S.confs[cid]?S.confs[cid].hex:"#7b8fa8";
 function eraName(y){return y<2024?"PRE-NIL ERA":y<2030?"NIL ERA":"SUPER LEAGUE ERA";}
 
-function drawMap(cid){
+function buildMapBase(){
   const svg=$("map");svg.innerHTML="";
-  const tip=$("tip"),wrap=$("mapPanel");
-  cid=cid||S.mapConf||S.player;
-  S.mapConf=cid;
-  const mem=members(S,cid);
-  if(!mem.length){
-    const t=svgEl("text",{x:300,y:200,fill:"var(--dim)","font-size":14,"text-anchor":"middle","font-weight":700});
-    t.textContent="No schools in this conference";svg.appendChild(t);return;
+  const d="M"+OUTLINE.map(p=>proj(p[0],p[1]).map(v=>v.toFixed(1)).join(",")).join(" L")+" Z";
+  svg.appendChild(svgEl("path",{d,fill:"#0d1a2e",stroke:"#24466e","stroke-width":1.4,"stroke-linejoin":"round"}));
+  for(let x=100;x<980;x+=110)svg.appendChild(svgEl("line",{x1:x,y1:0,x2:x,y2:600,stroke:"#151d30","stroke-width":0.6}));
+  for(let y=80;y<600;y+=100)svg.appendChild(svgEl("line",{x1:0,y1:y,x2:980,y2:y,stroke:"#151d30","stroke-width":0.6}));
+  const h=svgEl("g",{id:"hulls"});svg.appendChild(h);
+  const g=svgEl("g",{id:"dots"});svg.appendChild(g);
+}
+function convexHull(pts){
+  pts=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[];for(const p of pts){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+function highlightConf(cid){
+  const hg=$("map").querySelector("#hulls");hg.innerHTML="";
+  if(!cid){$("map").querySelectorAll("#dots circle.dot").forEach(c=>c.setAttribute("opacity",c.dataset.base));return;}
+  const pts=members(S,cid).map(s=>proj(s.lat,s.lon));
+  if(pts.length>=3){
+    const hp=convexHull(pts).map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" ");
+    hg.appendChild(svgEl("polygon",{points:hp,fill:confHex(cid),opacity:0.10,stroke:confHex(cid),"stroke-width":1.2,"stroke-dasharray":"5 4","stroke-opacity":0.55,"stroke-linejoin":"round"}));
   }
-  const lats=mem.map(s=>s.lat),lons=mem.map(s=>s.lon);
-  const minLat=Math.min(...lats)-1.5,maxLat=Math.max(...lats)+1.5;
-  const minLon=Math.min(...lons)-2,maxLon=Math.max(...lons)+2;
-  const latSpan=Math.max(4,maxLat-minLat),lonSpan=Math.max(6,maxLon-minLon);
-  const W=600,H=400,P=40;
-  const scaleX=(W-2*P)/lonSpan,scaleY=(H-2*P)/latSpan;
-  const scale=Math.min(scaleX,scaleY);
-  const cx=(minLon+maxLon)/2,cy=(minLat+maxLat)/2;
-  const px=s=>(s.lon-cx)*scale+W/2;
-  const py=s=>(cy-s.lat)*scale+H/2;
-
-  const bg=svgEl("rect",{x:0,y:0,width:W,height:H,fill:"#0d1220",rx:8});
-  svg.appendChild(bg);
-  for(let x=50;x<W;x+=80)svg.appendChild(svgEl("line",{x1:x,y1:0,x2:x,y2:H,stroke:"#151d30","stroke-width":0.5}));
-  for(let y=50;y<H;y+=60)svg.appendChild(svgEl("line",{x1:0,y1:y,x2:W,y2:y,stroke:"#151d30","stroke-width":0.5}));
-
-  const title=svgEl("text",{x:W/2,y:22,fill:confHex(cid),"font-size":13,"text-anchor":"middle","font-weight":800,"letter-spacing":"2"});
-  title.textContent=S.confs[cid].name.toUpperCase()+(cid===S.player?" (YOUR CONFERENCE)":"");
-  svg.appendChild(title);
-
-  const sorted=[...mem].sort((a,b)=>b.brand-a.brand);
+  $("map").querySelectorAll("#dots circle.dot").forEach(c=>{
+    c.setAttribute("opacity",c.dataset.conf===cid?1:0.10);
+  });
+}
+function drawDots(){
+  const g=$("map").querySelector("#dots");g.innerHTML="";
+  const tip=$("tip"),wrap=$("mapPanel");
+  const sorted=[...S.schools].sort((a,b)=>b.brand-a.brand);
   for(const s of sorted){
-    const x=px(s),y=py(s);
+    const [x,y]=proj(s.lat,s.lon);
+    const r=2.6+Math.pow(Math.max(0,s.brand-34)/62,1.3)*10.5;
     const mine=s.conf===S.player;
-    const bw=Math.max(44,Math.min(62,s.abbr.length*11+16));
-    const bh=26;
-    const g=svgEl("g",{});
-    g.style.cursor="pointer";
-    if(mine){
-      const halo=svgEl("rect",{x:x-bw/2-3,y:y-bh/2-3,width:bw+6,height:bh+6,rx:9,fill:"none",stroke:"#ffffff44","stroke-width":1.5});
-      g.appendChild(halo);
+    const ghost=!mine&&((mapMode==="p"&&isG5(s.conf))||(mapMode==="g"&&!isG5(s.conf)));
+    if(mine&&!ghost){
+      const h=svgEl("circle",{cx:x,cy:y,r:r+3.2,fill:"none",stroke:"#fff8f0","stroke-width":1.2,opacity:0.85,class:"halo"});
+      h.dataset.r=r+3.2;h.dataset.sw=1.2;h.style.pointerEvents="none";g.appendChild(h);
     }
-    const rect=svgEl("rect",{x:x-bw/2,y:y-bh/2,width:bw,height:bh,rx:7,fill:s.color,stroke:confHex(cid),"stroke-width":2});
-    g.appendChild(rect);
-    const txt=svgEl("text",{x,y:y+5,fill:inkFor(s),"font-size":12,"text-anchor":"middle","font-weight":800,"letter-spacing":"0.5"});
-    txt.textContent=s.abbr;
-    g.appendChild(txt);
-    const bval=svgEl("text",{x,y:y+bh/2+13,fill:"var(--dim)","font-size":9,"text-anchor":"middle","font-weight":600});
-    bval.textContent=Math.round(s.brand);
-    g.appendChild(bval);
-
-    g.addEventListener("mousemove",ev=>{
+    const sw=1.3+r*0.1;
+    const c=svgEl("circle",{cx:x,cy:y,r,fill:s.color,class:"dot",stroke:confHex(s.conf),"stroke-width":sw,opacity:ghost?0.09:(s.conf==="g5"?0.85:0.96)});
+    c.dataset.r=r;c.dataset.sw=sw;c.dataset.conf=s.conf;c.dataset.base=ghost?0.09:(s.conf==="g5"?0.85:0.96);
+    if(ghost)c.style.pointerEvents="none";
+    c.addEventListener("mousemove",ev=>{
       const b=wrap.getBoundingClientRect();
       tip.style.display="block";
       let tx=ev.clientX-b.left+14,ty=ev.clientY-b.top+10;
@@ -1151,20 +1154,72 @@ function drawMap(cid){
         <div class="row"><span>Payout</span><span>${fmtM(payoutOf(S,s.conf))}/yr</span></div>
         <div class="row"><span>Mood</span><span style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}</span></div>`;
     });
-    g.addEventListener("mouseleave",()=>tip.style.display="none");
-    g.addEventListener("click",()=>{if(S.over)return;if(s.conf===S.player)memberModal(s);else courtModal(s);});
-    svg.appendChild(g);
+    c.addEventListener("mouseleave",()=>tip.style.display="none");
+    c.addEventListener("click",()=>{if(dragMoved||S.over)return;if(s.conf===S.player)memberModal(s);else if(s.conf!=="sl")courtModal(s);});
+    g.appendChild(c);
+    if(!ghost){
+      const t=svgEl("text",{x,y:y-r-4,fill:"#9db4d6","font-size":9,"font-weight":700,"text-anchor":"middle"});
+      t.textContent=s.abbr;t.dataset.cy=y;t.dataset.r=r;t.dataset.always=s.brand>=82?"1":"0";
+      t.style.pointerEvents="none";g.appendChild(t);
+    }
   }
+  applyView();
 }
 
+let view={x:0,y:0,w:980,h:600},dragMoved=false,mapMode="all";
+function clampView(){
+  view.w=Math.max(170,Math.min(980,view.w));view.h=view.w*600/980;
+  view.x=Math.max(-30,Math.min(1010-view.w,view.x));
+  view.y=Math.max(-20,Math.min(620-view.h,view.y));
+}
+function applyView(){
+  clampView();
+  $("map").setAttribute("viewBox",`${view.x} ${view.y} ${view.w} ${view.h}`);
+  const k=view.w/980,rk=Math.pow(k,0.55),tk=Math.pow(k,0.75);
+  const dots=$("map").querySelectorAll("#dots circle");
+  dots.forEach(c=>{c.setAttribute("r",(+c.dataset.r)*rk);c.setAttribute("stroke-width",(+c.dataset.sw)*Math.pow(k,0.7));});
+  $("map").querySelectorAll("#dots text").forEach(t=>{
+    t.setAttribute("font-size",Math.max(3.2,9*tk));
+    t.setAttribute("y",(+t.dataset.cy)-(+t.dataset.r)*rk-4*tk);
+    t.style.display=(t.dataset.always==="1"||k<0.56)?"block":"none";
+  });
+}
+function svgPt(ev){const svg=$("map");const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+function zoomAt(px,py,f){
+  const w=Math.max(170,Math.min(980,view.w/f));
+  view.x=px-(px-view.x)*(w/view.w);view.y=py-(py-view.y)*(w/view.w);view.w=w;
+  applyView();
+}
+function initMapNav(){
+  const svg=$("map");
+  svg.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e);zoomAt(p.x,p.y,e.deltaY<0?1.2:1/1.2);},{passive:false});
+  svg.addEventListener("dblclick",e=>{const p=svgPt(e);zoomAt(p.x,p.y,1.6);});
+  let st=null;
+  svg.addEventListener("mousedown",e=>{st={cx:e.clientX,cy:e.clientY,vx:view.x,vy:view.y,a:svg.getScreenCTM().a};dragMoved=false;svg.classList.add("dragging");});
+  window.addEventListener("mousemove",e=>{
+    if(!st)return;
+    const dx=e.clientX-st.cx,dy=e.clientY-st.cy;
+    if(Math.abs(dx)+Math.abs(dy)>4)dragMoved=true;
+    if(dragMoved){view.x=st.vx-dx/st.a;view.y=st.vy-dy/st.a;applyView();}
+  });
+  window.addEventListener("mouseup",()=>{st=null;svg.classList.remove("dragging");setTimeout(()=>dragMoved=false,0);});
+  $("zIn").addEventListener("click",()=>zoomAt(view.x+view.w/2,view.y+view.h/2,1.35));
+  $("zOut").addEventListener("click",()=>zoomAt(view.x+view.w/2,view.y+view.h/2,1/1.35));
+  $("zReset").addEventListener("click",()=>{view={x:0,y:0,w:980,h:600};applyView();});
+}
 function drawLegend(){
   const lg=$("legend");lg.innerHTML="";
-  const ids=[...ALLC.filter(id=>!S.confs[id].dead),...(S.confs.sl&&!S.confs.sl.dead?["sl"]:[])];
+  const hint=document.createElement("div");hint.className="lg";
+  hint.innerHTML=`<span style="letter-spacing:0">fill = school colors · ring = conference</span>`;
+  lg.appendChild(hint);
+  const ids=[...ALLC.filter(id=>!S.confs[id].dead),...(S.confs.sl&&!S.confs.sl.dead?["sl"]:[]),"g5"];
   for(const id of ids){
-    const d=document.createElement("div");
-    d.className="lg"+(id===S.mapConf?" active":"");
+    const d=document.createElement("div");d.className="lg";d.style.cursor="pointer";
     d.innerHTML=`<i style="background:${confHex(id)}"></i>${S.confs[id].name}`;
-    d.addEventListener("click",()=>{S.mapConf=id;drawMap(id);drawLegend();});
+    d.title="hover to see their territory · click for the full roster";
+    d.addEventListener("mouseenter",()=>highlightConf(id));
+    d.addEventListener("mouseleave",()=>highlightConf(null));
+    d.addEventListener("click",()=>confModal(id));
     lg.appendChild(d);
   }
 }
@@ -1231,7 +1286,7 @@ function renderStandings(){
       <td style="color:var(--dim)">${m}</td>
       <td style="text-align:right;font-weight:700">${fmtM(pay)}<span style="color:var(--dim);font-weight:400">/school</span></td>
       <td class="payBar"><div class="bar"><i style="width:${(pay/max)*100}%;background:${c.hex}"></i></div></td>`;
-    tr.addEventListener("click",()=>{S.mapConf=id;drawMap(id);drawLegend();confModal(id);});
+    tr.addEventListener("click",()=>{highlightConf(id);confModal(id);});
     t.appendChild(tr);
   });
 }
@@ -1288,7 +1343,7 @@ function renderNews(){
 }
 function renderAll(){
   S.schools.forEach(s=>{s.mood=Math.max(2,Math.min(98,s.mood));});
-  renderTop();renderOffice();renderMembers();renderStandings();renderActions();renderNews();drawMap();drawLegend();autosave();
+  renderTop();renderOffice();renderMembers();renderStandings();renderActions();renderNews();drawDots();drawLegend();autosave();
 }
 
 /* ---------- saves ---------- */
@@ -1300,7 +1355,7 @@ function autosave(){if(!S||S.over||S.queue.length)return;try{storSet(JSON.string
 function loadSave(){try{const j=storGet();if(!j)return null;const d=JSON.parse(j);return d&&d.schools&&d.confs&&d.player?d:null;}catch(e){return null;}}
 function resumeGame(d){
   S=d;rng=Math.random;
-  renderAll();hideModal();
+  buildMapBase();renderAll();hideModal();
   toast(`Back in the chair, Commissioner — ${S.year}, the ${S.confs[S.player].name}.`);
 }
 
@@ -1708,7 +1763,7 @@ function startGame(confId,daily){
   if(daily)news(S,`🎲 <b>DAILY CHALLENGE:</b> everyone plays the ${c.name} today. Same chaos — outscore your friends.`,"good");
   news(S,`You take office as commissioner of the <b>${c.name}</b>. The board expects results.`,"good");
   if(isG5(S.player))news(S,`Your league lives in the sport's basement — for now. Build brands, survive the raids, and climb.`,"event");
-  renderAll();hideModal();
+  buildMapBase();renderAll();hideModal();
   toast(`Good luck, Commissioner. ${S.startYear}–${S.endYear}.`);
   showCoach();
 }
@@ -1772,6 +1827,8 @@ $("btnVault").addEventListener("click",vaultModal);
 document.addEventListener("keydown",e=>{
   if(e.code==="Space"&&$("shade").style.display!=="flex"){e.preventDefault();advance();}
 });
+buildMapBase();
+initMapNav();
 showPick();
 </script>
 </body>
