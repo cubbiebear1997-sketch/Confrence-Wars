@@ -188,6 +188,15 @@ button:disabled{opacity:.38;cursor:not-allowed;filter:none}
 .warBanner .warBonus{font-size:10px;color:var(--dim);margin-top:2px}
 .saveIcon{display:inline-block;font-size:10px;color:var(--green);margin-left:6px;opacity:0;transition:opacity .3s}
 .saveIcon.show{opacity:1}
+.tipBox{position:fixed;left:50%;bottom:70px;transform:translateX(-50%) translateY(16px);max-width:480px;width:92%;background:linear-gradient(180deg,#1e2548,#181d35);border:1px solid var(--ora);border-radius:12px;padding:14px 18px;font-size:12.5px;line-height:1.6;box-shadow:0 12px 40px #000a;z-index:70;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+.tipBox.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.tipBox b{color:var(--ora)}
+.tipBox .btnRow{margin-top:10px}
+.bracket-match.buzzer{outline:1px solid var(--red);box-shadow:0 0 12px #f8717166}
+.gradeSm{font-size:34px;font-weight:900;text-align:center;line-height:1}
+.gpaRow{text-align:center;margin-top:8px;font-size:13px;color:var(--dim)}
+.gpaRow b{color:var(--gold);font-size:20px}
+.confDetailRow{display:flex;justify-content:space-between;gap:10px;padding:4px 2px;font-size:11.5px;border-bottom:1px solid #2a335544}
 </style>
 </head>
 <body>
@@ -224,6 +233,7 @@ button:disabled{opacity:.38;cursor:not-allowed;filter:none}
 <div id="shade"><div id="modal"></div></div>
 <div id="tip"></div>
 <div id="toast"></div>
+<div id="tipBox" class="tipBox"></div>
 <canvas id="confettiCanvas" class="confetti" width="1" height="1"></canvas>
 
 <script>
@@ -328,6 +338,11 @@ const ALLC=["b1g","sec","b12","acc","be","aac","mw","wcc"];
 const P5=["b1g","sec","b12","acc","be"];
 const isG5=id=>!P5.includes(id);
 
+const COACHES=["Jay Wright","Tony Bennett","Mark Few","Bill Self","John Calipari","Scott Drew","Tom Izzo","Rick Pitino","Dan Hurley","Kelvin Sampson","Bruce Pearl","Porter Moser","Shaka Smart","Nate Oats"];
+const INSIDERS=["Woj","Shams","Jeff Goodman","Jon Rothstein","Pete Thamel","CBS Sports HQ"];
+const COMMENTATORS=["Dick Vitale","Jay Bilas","Seth Davis","Andy Katz","Fran Fraschilla","Clark Kellogg"];
+const pick=arr=>arr[Math.floor(rng()*arr.length)];
+
 const $=id=>document.getElementById(id);
 const fmtM=v=>"$"+(v>=1000?(v/1000).toFixed(1)+"B":v>=10?Math.round(v)+"M":Math.max(0,v).toFixed(1)+"M");
 const proj=(lat,lon)=>[(lon+126)*(940/60)+15,(50-lat)*(560/26)+10];
@@ -390,7 +405,9 @@ function confBrand(st,conf){const m=members(st,conf);if(!m.length)return 0;retur
 function mediaValue(st,conf){
   const m=members(st,conf);if(!m.length)return 0;
   const avgBrand=confBrand(st,conf),totalMarket=m.reduce((a,s)=>a+s.market,0);
-  return (avgBrand*0.6+totalMarket/m.length*0.4)*m.length*0.018;
+  let v=(avgBrand*0.6+totalMarket/m.length*0.4)*m.length*0.018;
+  if(st.superConf&&conf===st.player)v*=1.3;
+  return v;
 }
 function payoutOf(st,conf){
   const c=st.confs[conf];if(!c||c.dead)return 0;
@@ -402,38 +419,51 @@ function confValue(st,conf){return members(st,conf).reduce((a,s)=>a+programValue
 
 function hasUpgrade(st,id){return st.upgrades&&st.upgrades.includes(id);}
 
-function acceptChance(st,school,toConf){
+function acceptChanceDetail(st,school,toConf,opts){
+  opts=opts||{};
   const from=school.conf,toC=st.confs[toConf],fromC=st.confs[from];
-  if(!fromC||!toC)return 0;
+  const payFrom=payoutOf(st,from),payTo=payoutOf(st,toConf);
+  if(!fromC||!toC)return{p:0,payFrom,payTo,payDelta:0,distPen:0,exitDeter:0,gorPen:0,prestigeAdj:0};
   let p=35;
-  const payDelta=payoutOf(st,toConf)-payoutOf(st,from);
+  const payDelta=payTo-payFrom;
   p+=Math.min(25,Math.max(-20,payDelta*2));
   const brandDelta=confBrand(st,toConf)-confBrand(st,from);
   p+=Math.min(15,Math.max(-10,brandDelta*0.3));
   if(school.mood<35)p+=15;
   if(school.mood<20)p+=10;
   if(school.mood>70)p-=15;
-  if(fromC.exitFee>0)p-=Math.min(20,fromC.exitFee*0.8);
-  if(fromC.gor)p-=25;
+  let exitDeter=0;
+  if(fromC.exitFee>0){exitDeter=Math.min(20,fromC.exitFee*0.8);p-=exitDeter;}
+  let gorPen=0;
+  if(fromC.gor){gorPen=25;p-=25;}
   if(fromC.wounded>0)p+=12;
   const mems=members(st,toConf);
+  let distPen=0;
   if(mems.length>0){
     const dist=Math.sqrt(Math.pow(school.lat-mems.reduce((a,s)=>a+s.lat,0)/mems.length,2)+Math.pow(school.lon-mems.reduce((a,s)=>a+s.lon,0)/mems.length,2));
-    if(dist>15)p-=8;
+    if(dist>15){distPen=8;p-=8;}
   }
   if(school.lastCourt===st.year-1)p-=10;
-  p+=st.confs[toConf].prestige*0.15;
+  const prestigeAdj=st.confs[toConf].prestige*0.15;
+  p+=prestigeAdj;
   if(hasUpgrade(st,"scout")&&toConf===st.player)p+=12;
   if(st.warTarget&&from===st.warTarget&&toConf===st.player)p+=15;
-  return Math.max(2,Math.min(95,Math.round(p)));
+  if(school._rumored&&school._rumored.conf===toConf)p+=10;
+  if(opts.sweeten)p+=15;
+  return{p:Math.max(2,Math.min(95,Math.round(p))),payFrom,payTo,payDelta,distPen,exitDeter,gorPen,prestigeAdj};
 }
+function acceptChance(st,school,toConf){return acceptChanceDetail(st,school,toConf).p;}
 
 function moveSchool(st,school,toConf,quiet){
   const from=school.conf;
+  delete school._rumored;
   school.conf=toConf;school.mood=50+rng()*10;
   if(!quiet){
-    st.news.push({yr:st.year,txt:`🏀 <b>${school.name}</b> leaves the ${st.confs[from]?.name||"Independents"} for the <b>${st.confs[toConf].name}</b>!`,cls:"poach"});
+    const insiderTag=rng()<0.4?` <span style="color:var(--dim);font-size:10px">(${pick(INSIDERS)} broke the story)</span>`:"";
+    st.news.push({yr:st.year,txt:`🏀 <b>${school.name}</b> leaves the ${st.confs[from]?.name||"Independents"} for the <b>${st.confs[toConf].name}</b>!${insiderTag}`,cls:"poach"});
     st.moves.push({from,to:toConf,school:school.abbr,yr:st.year});
+    st.moveAnimQueue=st.moveAnimQueue||[];
+    st.moveAnimQueue.push({abbr:school.abbr,toConf});
   }
   checkCollapse(st,from);
 }
@@ -479,6 +509,9 @@ function newState(playerConf){
     confTourneyResults:[],
     seasonsPlayed:0,longestStreak:0,
     rivalries:[],
+    moveAnimQueue:[],
+    superConf:false,superConfYear:null,superConfAntitrustTimer:0,
+    overtimeCount:0,
   };
   const tvMults={b1g:1.0,sec:1.0,b12:0.95,acc:0.95,be:0.7,aac:0.4,mw:0.35,wcc:0.25};
   for(const id of ALLC){
@@ -760,21 +793,109 @@ function aiTurns(st){
     if(id===st.player||st.confs[id].dead)continue;
     const c=st.confs[id];
     if(rng()<0.15+c.prestige*0.003){
-      const targets=st.schools.filter(s=>s.conf!==id&&s.conf!=="g5"&&!st.confs[s.conf].dead&&s.brand>55);
+      let targets=st.schools.filter(s=>s.conf!==id&&s.conf!=="g5"&&!st.confs[s.conf].dead&&s.brand>55);
       if(!targets.length)continue;
-      targets.sort((a,b)=>b.brand-a.brand);
-      const pick=targets[Math.floor(rng()*Math.min(5,targets.length))];
-      const chance=acceptChance(st,pick,id);
+      const rumored=targets.find(s=>s._rumored&&s._rumored.conf===id&&s._rumored.year===st.year);
+      let chosen;
+      if(rumored&&rng()<0.65){
+        chosen=rumored;
+      } else {
+        targets=targets.slice().sort((a,b)=>b.brand-a.brand);
+        chosen=targets[Math.floor(rng()*Math.min(5,targets.length))];
+      }
+      const chance=acceptChance(st,chosen,id);
       if(rng()*100<chance){
-        if(pick.conf===st.player){
-          st.queue.push({type:"raid",school:pick.id,raider:id,chance});
+        if(chosen.conf===st.player){
+          st.queue.push({type:"raid",school:chosen.id,raider:id,chance});
         } else {
-          moveSchool(st,pick,id);
-          if(st.confs[pick.orig])st.confs[pick.orig].wounded=2;
+          moveSchool(st,chosen,id);
+          if(st.confs[chosen.orig])st.confs[chosen.orig].wounded=2;
         }
       }
     }
   }
+}
+
+/* ============================================================
+   RUMOR / FORESHADOWING SYSTEM
+   ============================================================ */
+function seedRumors(st){
+  st.schools.forEach(s=>{if(s._rumored&&s._rumored.year<=st.year)delete s._rumored;});
+  if(rng()<0.5)return;
+  const candidates=st.schools.filter(s=>s.conf!=="g5"&&!st.confs[s.conf].dead&&!s._rumored);
+  if(!candidates.length)return;
+  const n=1+(rng()<0.3?1:0);
+  for(let i=0;i<n;i++){
+    const pool=st.schools.filter(s=>s.conf!=="g5"&&!st.confs[s.conf].dead&&!s._rumored);
+    if(!pool.length)break;
+    const school=pool[Math.floor(rng()*pool.length)];
+    const others=ALLC.filter(cid=>cid!==school.conf&&!st.confs[cid].dead);
+    if(!others.length)continue;
+    others.sort((a,b)=>payoutOf(st,b)-payoutOf(st,a));
+    const target=rng()<0.35?st.player:others[Math.floor(rng()*Math.min(3,others.length))];
+    if(target===school.conf)continue;
+    school._rumored={conf:target,year:st.year+1};
+    const targetName=st.confs[target].name;
+    const flavor=rng()<0.5?
+      `📻 ${pick(INSIDERS)} is reporting that the <b>${targetName}</b> are eyeing <b>${school.name}</b>...`:
+      `👀 Don't be surprised if <b>${school.name}</b> picks up the phone when the <b>${targetName}</b> call.`;
+    st.news.push({yr:st.year,txt:flavor,cls:"event"});
+  }
+}
+
+/* ============================================================
+   SUPER CONFERENCE ENDGAME
+   ============================================================ */
+function top16ByBrand(st){
+  return [...st.schools].filter(s=>s.conf!=="g5"&&!st.confs[s.conf].dead).sort((a,b)=>b.brand-a.brand).slice(0,16);
+}
+function canFormSuperConf(st){
+  if(st.superConf)return false;
+  if(st.year<2035)return false;
+  const top16=top16ByBrand(st);
+  const mine=top16.filter(s=>s.conf===st.player).length;
+  if(mine<5)return false;
+  const ranks=ALLC.filter(cid=>!st.confs[cid].dead).sort((a,b)=>payoutOf(st,b)-payoutOf(st,a));
+  return ranks[0]===st.player;
+}
+function playerFormSuperConf(st){
+  if(!canFormSuperConf(st))return toast("Requirements not met yet.");
+  if(st.ap<3)return toast("Need 3 AP to form the Super Conference!");
+  showSuperConfModal(st);
+}
+function showSuperConfModal(st){
+  const top16=top16ByBrand(st);
+  const raidPreview=st.schools.filter(s=>s.conf!==st.player&&s.conf!=="g5"&&!st.confs[s.conf].dead).sort((a,b)=>b.brand-a.brand).slice(0,4);
+  const html=`<h2>🌟 Form the Super Conference</h2>
+    <div class="sub">The ultimate power move. This cannot be undone.</div>
+    <div class="body">
+      <p>Your conference will permanently seize <b style="color:var(--gold)">+30% media revenue</b> and raid the <b>4 best remaining programs</b> in the country:</p>
+      <p style="margin-top:6px">${raidPreview.map(s=>`<b style="color:${s.color}">${s.name}</b>`).join(", ")}</p>
+      <p style="margin-top:8px;color:var(--red)">Rival conferences may file antitrust action in retaliation.</p>
+    </div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Not Yet</button><button class="btn-red" onclick="doFormSuperConf()">FORM THE SUPER CONFERENCE — 3 AP</button></div>`;
+  showModal(html);
+}
+function doFormSuperConf(){
+  const st=S;
+  if(st.ap<3){hideModal();return toast("Need 3 AP!");}
+  st.ap-=3;
+  st.superConf=true;st.superConfYear=st.year;
+  const c=st.confs[st.player];
+  c.tv.rate*=1.3;
+  c.prestige=Math.min(99,c.prestige+10);
+  hideModal();
+  const raidPool=st.schools.filter(s=>s.conf!==st.player&&s.conf!=="g5"&&!st.confs[s.conf].dead).sort((a,b)=>b.brand-a.brand).slice(0,4);
+  const moved=[];
+  raidPool.forEach(s=>{moveSchool(st,s,st.player);moved.push({abbr:s.abbr,toConf:st.player});});
+  const movedAbbrs=moved.map(m=>m.abbr);
+  st.moveAnimQueue=(st.moveAnimQueue||[]).filter(m=>!movedAbbrs.includes(m.abbr));
+  st.news.push({yr:st.year,txt:`🌟 <b>THE SUPER CONFERENCE IS BORN.</b> The ${c.name} seizes control of college basketball, raiding ${raidPool.map(s=>s.name).join(", ")}.`,cls:"war"});
+  sfxWar();sfxCheer();screenShake();spawnConfetti();gainXP(st,40);
+  checkAchievements(st);
+  renderAll();
+  setTimeout(()=>animateMoves(moved),300);
+  st.superConfAntitrustTimer=2+Math.floor(rng()*2);
 }
 
 function seasonEcon(st){
@@ -840,6 +961,27 @@ function yearEvents(st){
     if(st.warTurns<=0){
       st.news.push({yr:st.year,txt:`⚔️ <b>Conference war with ${st.confs[st.warTarget]?.name||"?"} has ended.</b> Time for diplomacy.`,cls:"war"});
       st.warTarget=null;
+    }
+  }
+
+  if(st.superConf&&st.superConfAntitrustTimer>0){
+    st.superConfAntitrustTimer--;
+    if(st.superConfAntitrustTimer===0){
+      st.queue.push({type:"choice",data:{title:"Antitrust Lawsuit",desc:"A coalition of rival conferences has filed an antitrust suit against your Super Conference monopoly.",
+        opts:[{label:"Fight in Court ($20M)",fx:()=>{
+          if(st.nilBudget>=20){
+            st.nilBudget-=20;
+            if(rng()<0.6){st.news.push({yr:st.year,txt:"⚖️ You win! The lawsuit is dismissed. The empire stands.",cls:"good"});gainXP(st,10);}
+            else{st.confs[st.player].tv.rate*=0.9;st.news.push({yr:st.year,txt:"⚖️ Court ruling trims some revenue. The empire survives, weakened.",cls:"poach"});}
+          } else {
+            st.confs[st.player].tv.rate*=0.88;
+            st.news.push({yr:st.year,txt:"💸 Can't afford legal fees — the court rules against you by default.",cls:"poach"});
+          }
+        }},
+        {label:"Settle Quietly",fx:()=>{
+          st.confs[st.player].tv.rate*=0.95;st.confs[st.player].prestige-=3;
+          st.news.push({yr:st.year,txt:"🤝 Settled out of court. A quiet cost of doing business.",cls:"event"});
+        }}]}});
     }
   }
 
@@ -911,6 +1053,43 @@ function yearEvents(st){
   for(const id of ALLC){
     if(st.confs[id].wounded>0)st.confs[id].wounded--;
   }
+
+  extraWireFlavor(st);
+}
+
+function extraWireFlavor(st){
+  if(st.year%3===0&&rng()<0.7){
+    const top=[...st.schools].filter(s=>s.conf!=="g5"&&!st.confs[s.conf].dead).sort((a,b)=>programValue(st,b)-programValue(st,a)).slice(0,3);
+    if(top.length){
+      st.news.push({yr:st.year,txt:`💵 <b>Forbes Power Rankings:</b> ${top.map(s=>s.name+" ("+fmtM(programValue(st,s))+")").join(", ")} lead the nation in program value.`,cls:"money"});
+    }
+  }
+  if(rng()<0.22){
+    const pool=ALLC.filter(id=>!st.confs[id].dead);
+    const cid=pool[Math.floor(rng()*pool.length)];
+    const m=members(st,cid);
+    const school=m.length?m[Math.floor(rng()*m.length)]:null;
+    if(school){
+      st.news.push({yr:st.year,txt:`🎤 ${pick(INSIDERS)}: <b>${pick(COACHES)}</b> is drawing carousel interest to take over at <b>${school.name}</b>.`,cls:"event"});
+    }
+  }
+  if(rng()<0.18){
+    const pool=ALLC.filter(id=>!st.confs[id].dead);
+    const cid=pool[Math.floor(rng()*pool.length)];
+    const takes=["most underrated league in the country right now.","still has work to do before it's a true blue-blood conference.","the deepest top-to-bottom league in America.","overrated — the resume doesn't match the rankings."];
+    st.news.push({yr:st.year,txt:`🎙️ ${pick(COMMENTATORS)} on the <b>${st.confs[cid].name}</b>: "${takes[Math.floor(rng()*takes.length)]}"`,cls:"event"});
+  }
+  if(st.seasonsPlayed>2&&rng()<0.15){
+    const past=st.news.filter(n=>n.yr===st.year-1&&(n.cls==="good"||n.cls==="poach"));
+    if(past.length){
+      const p=past[Math.floor(rng()*past.length)];
+      st.news.push({yr:st.year,txt:`📅 <b>One year ago today:</b> ${p.txt.replace(/<[^>]+>/g,"")}`,cls:"event"});
+    }
+  }
+  if(rng()<0.2){
+    const ranked=rankConfs(st).slice(0,5);
+    st.news.push({yr:st.year,txt:`📊 ${pick(COMMENTATORS)}'s Power 5: ${ranked.map((id,i)=>(i+1)+") "+st.confs[id].name).join(" · ")}`,cls:"event"});
+  }
 }
 
 function rankConfs(st){
@@ -950,6 +1129,7 @@ const BADGES=[
   {id:"combo50",name:"On Fire",desc:"Reach combo 50+",check:st=>st.comboMax>=50},
   {id:"confTourney5",name:"Tournament King",desc:"Win 5 conference tournaments",check:st=>(st.confTourneyResults||[]).filter(r=>r.champion).length>=5},
   {id:"clutch",name:"Clutch Gene",desc:"Win 3 rivalry showdown shots",check:st=>(st.clutchWins||0)>=3},
+  {id:"monopoly",name:"Monopoly",desc:"Form the Super Conference",check:st=>!!st.superConf},
 ];
 
 function checkAchievements(st){
@@ -1058,6 +1238,15 @@ function advance(){
   if(hasUpgrade(S,"ap5"))S.ap=5;
   S.vetoUsed=false;
   S.seasonsPlayed++;
+  S.moveAnimQueue=[];
+  const snapMem=members(S,S.player);
+  S._seasonSnap={
+    stars:snapMem.reduce((a,s)=>a+(s.stars||0),0),
+    nilBudget:S.nilBudget,
+    payout:payoutOf(S,S.player),
+    avgMood:snapMem.length?snapMem.reduce((a,s)=>a+s.mood,0)/snapMem.length:50,
+    memberCount:snapMem.length,
+  };
   runSeason();
 }
 
@@ -1080,14 +1269,18 @@ function finishSeason(){
   const bracket=runTournament(S);
   seasonMoods(S);
 
-  S.nilBudget+=Math.round(payoutOf(S,S.player)*0.3+S.confs[S.player].prestige*0.2);
+  const bonus=Math.round(payoutOf(S,S.player)*0.3+S.confs[S.player].prestige*0.2);
+  S.nilBudget+=bonus;
   const streakBonus=Math.min(10,S.streak.ff*2);
   if(streakBonus>0){
     S.nilBudget+=streakBonus;
     if(streakBonus>=6)S.news.push({yr:S.year,txt:`🔥 <b>Streak bonus!</b> +${fmtM(streakBonus)} for ${S.streak.ff} consecutive Final Four appearances.`,cls:"money"});
   }
+  S._seasonIncome=bonus+streakBonus;
 
   gainXP(S,5);
+  seedRumors(S);
+  const recap=computeSeasonRecap(S,bracket);
 
   S.year++;
   if(S.year>=S.endYear||S.confs[S.player].dead){
@@ -1101,11 +1294,81 @@ function finishSeason(){
   checkAchievements(S);
   checkUpgradeUnlocks(S);
   renderAll();
+
+  const moved=S.moveAnimQueue||[];
+  S.moveAnimQueue=[];
   autoSave();
 
-  if(bracket){
-    setTimeout(()=>showBracketModal(bracket),400);
-  }
+  if(moved.length)animateMoves(moved);
+
+  setTimeout(()=>showSeasonRecapModal(recap,bracket),moved.length?700:400);
+}
+
+/* ============================================================
+   SEASON RECAP GRADES
+   ============================================================ */
+function letterToGPA(g){
+  const map={S:4.3,"A+":4.0,A:3.7,"B+":3.3,B:3.0,"C+":2.3,C:2.0,D:1.0,F:0};
+  return map[g]!==undefined?map[g]:2.0;
+}
+function computeSeasonRecap(st,bracket){
+  const snap=st._seasonSnap||{};
+  const m=members(st,st.player);
+  const starsNow=m.reduce((a,s)=>a+(s.stars||0),0);
+  const starsGained=Math.max(0,starsNow-(snap.stars||0));
+  const spentApprox=Math.max(0,(snap.nilBudget||0)+(st._seasonIncome||0)-st.nilBudget);
+  const recruitScore=Math.min(100,Math.max(0,starsGained*18+Math.min(20,spentApprox*0.8)));
+
+  const bids=bracket?bracket.playerBids:0,ff=bracket?bracket.playerFF:0,champ=bracket?bracket.playerChamp:0;
+  const tourneyScore=Math.min(100,bids*7+ff*22+champ*35);
+
+  const payNow=payoutOf(st,st.player);
+  const payGrowth=payNow-(snap.payout!==undefined?snap.payout:payNow);
+  const finScore=Math.min(100,Math.max(0,55+payGrowth*4+Math.min(25,st.nilBudget/6)));
+
+  const avgMoodNow=m.length?m.reduce((a,s)=>a+s.mood,0)/m.length:50;
+  const lost=st.moves.filter(mv=>mv.from===st.player&&mv.yr===st.year).length;
+  const gained=st.moves.filter(mv=>mv.to===st.player&&mv.yr===st.year).length;
+  const stabScore=Math.min(100,Math.max(0,55+(avgMoodNow-(snap.avgMood!==undefined?snap.avgMood:avgMoodNow))*2-lost*18+gained*8));
+
+  const grades={
+    recruit:letterGrade(recruitScore),
+    tourney:letterGrade(tourneyScore),
+    finance:letterGrade(finScore),
+    stability:letterGrade(stabScore),
+  };
+  const gpa=(letterToGPA(grades.recruit)+letterToGPA(grades.tourney)+letterToGPA(grades.finance)+letterToGPA(grades.stability))/4;
+
+  let summary;
+  if(champ>0)summary="A championship season for the ages.";
+  else if(ff>0)summary="Final Four heartbreak, but a season to build on.";
+  else if(lost>gained)summary="A shaky year — the roster bled talent to rivals.";
+  else if(starsGained>=3)summary="The recruiting trail paid off in a big way.";
+  else if(gpa>=3.3)summary="Steady, professional stewardship all around.";
+  else summary="A quiet, forgettable season in the grand scheme.";
+
+  return{grades,gpa,summary,detail:{starsGained,bids,ff,champ,payGrowth,lost,gained}};
+}
+function showSeasonRecapModal(recap,bracket){
+  const g=recap.grades;
+  const gpaColor=recap.gpa>=3.5?"var(--green)":recap.gpa>=2.5?"var(--gold)":"var(--red)";
+  const html=`<h2>📋 Season Recap — ${S.year-1}</h2>
+    <div class="sub">${recap.summary}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+      <div style="text-align:center"><div class="secLbl">Recruiting</div><div class="gradeSm reveal" style="color:${gradeColor(g.recruit)}">${g.recruit}</div></div>
+      <div style="text-align:center"><div class="secLbl">Tournament</div><div class="gradeSm reveal" style="color:${gradeColor(g.tourney)};animation-delay:.1s">${g.tourney}</div></div>
+      <div style="text-align:center"><div class="secLbl">Financial</div><div class="gradeSm reveal" style="color:${gradeColor(g.finance)};animation-delay:.2s">${g.finance}</div></div>
+      <div style="text-align:center"><div class="secLbl">Stability</div><div class="gradeSm reveal" style="color:${gradeColor(g.stability)};animation-delay:.3s">${g.stability}</div></div>
+    </div>
+    <div class="gpaRow">Season GPA: <b style="color:${gpaColor}">${recap.gpa.toFixed(2)}</b> / 4.00</div>
+    <div class="btnRow"><button class="btn-cta" onclick="afterRecap()">Continue ▸</button></div>`;
+  showModal(html);
+  window._pendingBracket=bracket;
+}
+function afterRecap(){
+  hideModal();
+  const bracket=window._pendingBracket;window._pendingBracket=null;
+  if(bracket)setTimeout(()=>showBracketModal(bracket),250);
 }
 
 function processQueue(){
@@ -1196,6 +1459,7 @@ function renderOffice(){
     <div class="stat"><div class="k">NIL Pool</div><div class="v" style="color:var(--green)">${fmtM(S.nilBudget)}</div><div class="nilBar"><i style="width:${Math.min(100,S.nilBudget/2)}%"></i></div></div>
     <div class="stat"><div class="k">Level</div><div class="v" style="color:var(--purple)">${S.level}</div><div class="xpBar"><i style="width:${xpPct(S)}%"></i></div></div>
     ${S.warTarget?`<div class="stat" style="grid-column:1/-1"><div class="warBanner"><div class="warTitle">⚔️ AT WAR</div><div class="warTarget" style="color:${S.confs[S.warTarget]?.hex||"#fff"}">${S.confs[S.warTarget]?.name||"?"}</div><div class="warBonus">${S.warTurns} season${S.warTurns!==1?"s":""} left · +15% poaching</div></div></div>`:""}
+    ${S.superConf?`<div class="stat" style="grid-column:1/-1"><div class="warBanner" style="border-color:var(--gold)"><div class="warTitle" style="color:var(--gold)">🌟 SUPER CONFERENCE</div><div class="warTarget">+30% Media Revenue</div><div class="warBonus">Formed in ${S.superConfYear}</div></div></div>`:""}
   `;
 }
 
@@ -1291,7 +1555,7 @@ function renderMap(){
     if(s.conf==="g5")return;
     if(mapHighlight&&s.conf!==mapHighlight&&s.conf!==S.player)return;
     const[x,y]=proj(s.lat,s.lon);
-    const r=Math.max(3,2.5+s.brand*0.065);
+    const r=2.6+Math.pow(Math.max(0,s.brand-34)/62,1.3)*10.5;
     const mine=s.conf===S.player;
     const c=S.confs[s.conf];
     const fill=s.color||"#888";
@@ -1369,16 +1633,72 @@ function showTip(e,s){
   tip.style.top=Math.min(e.clientY-10,window.innerHeight-140)+"px";
 }
 
+/* ---------- defection/move animation ---------- */
+function animateMoves(list) {
+  if(!list||!list.length)return;
+  const svg = document.querySelector('#mapPanel svg');
+  if(!svg) return;
+  list.slice(0,6).forEach((m,i) => {
+    setTimeout(() => {
+      const s = S.schools.find(x=>x.abbr===m.abbr);
+      if(!s) return;
+      const [x1,y1] = proj(s.lat, s.lon);
+      const toMembers = members(S, m.toConf);
+      if(!toMembers.length) return;
+      const cx = toMembers.reduce((a,s)=>a+s.lon,0)/toMembers.length;
+      const cy = toMembers.reduce((a,s)=>a+s.lat,0)/toMembers.length;
+      const [x2,y2] = proj(cy, cx);
+      const col = S.confs[m.toConf]?.hex || '#fff';
+      const ns = "http://www.w3.org/2000/svg";
+      const mx=(x1+x2)/2, my=(y1+y2)/2 - Math.min(90, Math.hypot(x2-x1,y2-y1)*0.25);
+      const p = document.createElementNS(ns,"path");
+      p.setAttribute("d",`M${x1},${y1} Q${mx},${my} ${x2},${y2}`);
+      p.setAttribute("stroke",col);
+      p.setAttribute("class","moveArc");
+      p.setAttribute("fill","none");
+      const g = svg.querySelector('g') || svg;
+      g.appendChild(p);
+      setTimeout(()=>p.remove(), 1800);
+      const pc = document.createElementNS(ns,"circle");
+      pc.setAttribute("cx",x1);pc.setAttribute("cy",y1);pc.setAttribute("r","5");
+      pc.setAttribute("fill","none");pc.setAttribute("stroke",col);pc.setAttribute("stroke-width","2");
+      pc.setAttribute("class","pulseC");
+      g.appendChild(pc);
+      setTimeout(()=>pc.remove(), 1000);
+    }, i*260);
+  });
+}
+
 function renderStandings(){
   const ranked=rankConfs(S);
   $("standTable").innerHTML=ranked.map((id,i)=>{
     const c=S.confs[id];const m=members(S,id);
     const me=id===S.player?"me":"";
     const war=id===S.warTarget?"⚔️":"";
-    return `<tr class="${me}"><td>${i+1}</td><td class="cn" style="color:${c.hex}">${war}${c.name}</td>
+    return `<tr class="${me}" style="cursor:pointer" onclick="showConfModal('${id}')"><td>${i+1}</td><td class="cn" style="color:${c.hex}">${war}${c.name}</td>
       <td>${m.length}</td><td>${fmtM(payoutOf(S,id))}</td><td>${Math.round(c.prestige)}</td>
       <td>${c.titles||0}🏆</td></tr>`;
   }).join("");
+}
+
+function showConfModal(id){
+  const c=S.confs[id];const m=members(S,id).sort((a,b)=>b.brand-a.brand);
+  const avgBrand=confBrand(S,id);
+  const poachedByMe=S.moves.filter(mv=>mv.to===S.player&&mv.from===id).length;
+  const poachedFromMe=S.moves.filter(mv=>mv.to===id&&mv.from===S.player).length;
+  const html=`<h2 style="color:${c.hex}">${c.name}</h2>
+    <div class="sub">${m.length} schools · Prestige ${Math.round(c.prestige)} · Avg Brand ${Math.round(avgBrand)}</div>
+    <div class="body">
+      <div class="mrow"><span>TV Deal</span><span>${fmtM(c.tv.rate)} (${c.tv.expires>S.year?(c.tv.expires-S.year)+"yr left":"expired"})</span></div>
+      <div class="mrow"><span>Payout / school</span><span>${fmtM(payoutOf(S,id))}</span></div>
+      <div class="mrow"><span>Titles</span><span>${c.titles||0}🏆</span></div>
+      ${id!==S.player?`<div class="mrow"><span>Schools you've poached from them</span><span style="color:var(--green);font-weight:800">${poachedByMe}</span></div>
+      <div class="mrow"><span>Schools they've poached from you</span><span style="color:var(--red);font-weight:800">${poachedFromMe}</span></div>`:""}
+    </div>
+    <div class="secLbl">Roster (${m.length})</div>
+    <div class="body" style="max-height:220px;overflow-y:auto;margin-top:4px">${m.map(s=>`<div class="confDetailRow"><span><b style="color:${s.color}">${s.abbr}</b> ${s.name}</span><span>Brand ${Math.round(s.brand)}</span></div>`).join("")||"<div style='color:var(--dim)'>No members.</div>"}</div>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Close</button></div>`;
+  showModal(html);
 }
 
 function renderActions(){
@@ -1396,10 +1716,12 @@ function renderActions(){
     {icon:"🔮",title:"Predict Champion",desc:"Pick the tourney winner for bonus",ap:"Free",fn:"playerPredict(S)",show:!S.prediction,isNew:!S.prediction&&S.seasonsPlayed>=1},
     {icon:"⬆️",title:"Upgrades",desc:`${S.upgrades.length}/${UPGRADES.length} unlocked`,ap:"Free",fn:"playerUpgrades(S)",show:true},
     {icon:"🏀",title:"View Bracket",desc:"Last March Madness bracket",ap:"Free",fn:"showBracketModal(S.lastBracket)",show:!!S.lastBracket},
+    {icon:"🌟",title:"Form the Super Conference",desc:"Seize control — permanent +30% revenue, raid the best 4 programs",ap:"3 AP",fn:"playerFormSuperConf(S)",show:canFormSuperConf(S),isNew:true},
   ];
   $("actionsBody").innerHTML=acts.filter(a=>a.show).map(a=>{
+    const req=a.ap==="Free"?0:parseInt(a.ap);
     const isNew=a.isNew?" new":"";
-    return `<button class="act${isNew}" onclick="${a.fn}" ${S.ap<1&&a.ap!=="Free"?"disabled":""}>
+    return `<button class="act${isNew}" onclick="${a.fn}" ${S.ap<req?"disabled":""}>
       <span class="ic">${a.icon}</span><div class="tx"><div class="tt">${a.title}</div><div class="td">${a.desc}</div></div>
       <span class="ap">${a.ap}</span>
     </button>`;
@@ -1421,33 +1743,65 @@ function showTargetPicker(st,targets){
       const chance=acceptChance(st,s,st.player);
       const cc=chance>60?"var(--green)":chance>35?"var(--gold)":"var(--red)";
       const warTag=s.conf===st.warTarget?"⚔️ ":"";
-      return `<div class="mrow" style="cursor:pointer" onclick="attemptCourt(${s.id})">
-        <span>${warTag}<b style="color:${s.color}">${s.abbr}</b> ${s.name} <span style="color:var(--dim)">(${st.confs[s.conf]?.name||"?"})</span></span>
+      const rumorTag=s._rumored&&s._rumored.conf===st.player?" 👀":"";
+      return `<div class="mrow" style="cursor:pointer" onclick="showCourtDetail(${s.id})">
+        <span>${warTag}<b style="color:${s.color}">${s.abbr}</b> ${s.name}${rumorTag} <span style="color:var(--dim)">(${st.confs[s.conf]?.name||"?"})</span></span>
         <span style="color:${cc};font-weight:900">${chance}%</span></div>`;
     }).join("")}</div>
     <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Cancel</button></div>`;
   showModal(html);
 }
 
-function attemptCourt(schoolId){
+function showCourtDetail(schoolId,sweeten){
+  sweeten=!!sweeten;
+  const st=S,s=st.schools[schoolId];
+  const d=acceptChanceDetail(st,s,st.player,{sweeten});
+  const cc=d.p>60?"var(--green)":d.p>35?"var(--gold)":"var(--red)";
+  const html=`<h2>🎯 Pitch ${s.name}</h2>
+    <div class="sub">${st.confs[s.conf]?.name||"Independent"} · Brand ${Math.round(s.brand)} · Market ${Math.round(s.market)} · Record ${s.wins||0}-${s.losses||0}${s.stars?" · "+"★".repeat(Math.min(5,s.stars)):""}</div>
+    <div class="odds" style="color:${cc}">${d.p}%</div><div class="oddsLbl">chance they accept</div>
+    <div class="mrow"><span>Their mood</span><span style="color:${s.mood>65?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}%</span></div>
+    <div class="mrow"><span>Their current payout</span><span>${fmtM(d.payFrom)}/yr</span></div>
+    <div class="mrow"><span>Your projected offer</span><span style="color:var(--ora)">${fmtM(d.payTo)}/yr</span></div>
+    <div class="mrow"><span>Money delta</span><span>${d.payDelta>=0?"+":""}${fmtM(d.payDelta)}</span></div>
+    <div class="mrow"><span>Geography penalty</span><span>${d.distPen?("−"+Math.round(d.distPen)):"none"}</span></div>
+    <div class="mrow"><span>Exit-fee deterrent</span><span>${d.exitDeter?("−"+Math.round(d.exitDeter)):"none"}</span></div>
+    ${d.gorPen?`<div class="mrow"><span>Grant of Rights lock</span><span>−${d.gorPen}</span></div>`:""}
+    ${s._rumored&&s._rumored.conf===st.player?`<div class="mrow"><span style="color:var(--gold)">Rumor bonus</span><span style="color:var(--gold)">+10</span></div>`:""}
+    ${st.warTarget===s.conf?`<div class="mrow"><span style="color:var(--purple)">War bonus</span><span style="color:var(--purple)">+15</span></div>`:""}
+    <label class="tgl"><input type="checkbox" id="swT" ${sweeten?"checked":""} onchange="showCourtDetail(${schoolId},this.checked)"> Sweeten the deal <span style="color:var(--dim)">(+15% odds · costs $5M from war chest)</span></label>
+    <div class="btnRow"><button class="btn-ghost" onclick="hideModal()">Walk away</button>
+    <button class="btn-cta" onclick="attemptCourt(${schoolId},${sweeten})" ${st.ap<1?"disabled":""}>MAKE THE CALL — 1 AP</button></div>`;
+  showModal(html);
+}
+
+function attemptCourt(schoolId,sweeten){
   const s=S.schools[schoolId];
-  const chance=acceptChance(S,s,S.player);
+  if(S.ap<1)return toast("No actions remaining!");
+  if(sweeten&&S.nilBudget<5){toast("Not enough war chest to sweeten the deal!");sweeten=false;}
+  const d=acceptChanceDetail(S,s,S.player,{sweeten});
   S.ap--;s.lastCourt=S.year;
+  if(sweeten)S.nilBudget-=5;
   hideModal();
-  if(rng()*100<chance){
+  if(rng()*100<d.p){
     moveSchool(S,s,S.player);
     toast(`✅ ${s.name} joins your conference!`);
     sfxSwish();
     const cGain=hasUpgrade(S,"combo2x")?6:3;
     S.combo+=cGain;
     gainXP(S,6);
+    checkAchievements(S);
+    renderAll();
+    const anim=(S.moveAnimQueue||[]).filter(m=>m.abbr===s.abbr);
+    S.moveAnimQueue=(S.moveAnimQueue||[]).filter(m=>m.abbr!==s.abbr);
+    animateMoves(anim);
   } else {
     toast(`❌ ${s.name} declined your offer.`);
     S.combo=Math.max(0,S.combo-1);
     sfxFail();
+    checkAchievements(S);
+    renderAll();
   }
-  checkAchievements(S);
-  renderAll();
 }
 
 function showRetainPicker(st,unhappy){
@@ -1640,12 +1994,14 @@ function showRaidModal(item){
   const s=S.schools[item.school];
   const raider=S.confs[item.raider];
   const canVeto=hasUpgrade(S,"veto")&&!S.vetoUsed;
+  const canBreak=S.nilBudget>=15;
   const html=`<h2>🚨 Raid Alert!</h2>
     <div class="sub">The ${raider.name} is courting <b>${s.name}</b>!</div>
     <div class="body"><p><b style="color:${s.color}">${s.name}</b> (Brand: ${Math.round(s.brand)}, Mood: ${Math.round(s.mood)}%) is being courted by <b style="color:${raider.hex}">${raider.name}</b>.</p>
     <p>Chance they leave: <span style="color:var(--red);font-weight:900">${item.chance}%</span></p></div>
     <div class="btnRow">
       <button class="btn-cta" onclick="counterRaid(${item.school},'retain')">Retain ($5M + mood)</button>
+      <button class="btn-red" onclick="counterRaid(${item.school},'breakbank')" ${canBreak?"":"disabled"}>💰 Break the Bank ($15M, guaranteed)</button>
       ${canVeto?`<button class="btn-purple" onclick="counterRaid(${item.school},'veto')">🛡️ Veto (Free)</button>`:""}
       <button class="btn-ghost" onclick="counterRaid(${item.school},'let')">Let Them Go</button>
     </div>`;
@@ -1660,6 +2016,15 @@ function counterRaid(schoolId,action){
     s.mood=Math.min(85,s.mood+10);
     toast(`🛡️ Commissioner's Veto! ${s.name} stays!`);
     sfxSwish();S.combo+=3;gainXP(S,5);
+  } else if(action==="breakbank"){
+    if(S.nilBudget<15){toast("Not enough in the war chest!");}
+    else{
+      S.nilBudget-=15;
+      s.mood=Math.min(97,s.mood+30);
+      members(S,S.player).filter(m=>m.id!==s.id).forEach(m=>{m.mood=Math.max(5,m.mood-5);});
+      toast(`💰 Broke the bank for ${s.name}! The rest of the league is jealous.`);
+      sfxCoin();S.combo+=1;gainXP(S,4);
+    }
   } else if(action==="retain"){
     S.nilBudget=Math.max(0,S.nilBudget-5);
     s.mood=Math.min(85,s.mood+20);
@@ -1730,37 +2095,101 @@ function showMemberModal(id){
 /* ============================================================
    BRACKET MODAL
    ============================================================ */
+let bracketUI=null;
 function showBracketModal(bracket){
   if(!bracket)return;
+  bracketUI={bracket,round:0,shown:0,token:Symbol()};
+  renderBracketFrame();
+  scheduleReveal(bracketUI.token);
+}
+function renderBracketFrame(){
+  const {bracket,round}=bracketUI;
+  const html=`<h2>🏀 March Madness ${S.year-1}</h2>
+    <div class="sub" id="bracketSub"><b>${bracket.playerBids} bids</b> | ${bracket.rounds[round].name}</div>
+    <div class="bracket-wrap" id="bracketWrap"></div>
+    <div id="bracketFoot"></div>
+    <div class="btnRow" id="bracketBtns"><button class="btn-ghost" onclick="hideModal()">Skip to End</button></div>`;
+  showModal(html);
+  renderBracketRoundBody();
+}
+function renderBracketRoundBody(){
+  if(!bracketUI)return;
+  const {bracket,round,shown}=bracketUI;
+  const r=bracket.rounds[round];
   const playerConf=S.player;
-
-  let html=`<h2>🏀 March Madness ${S.year-1}</h2>
-    <div class="sub"><b>${bracket.playerBids} bids</b> | FF: <b>${bracket.playerFF}</b> | Champ: <b style="color:var(--gold)">${bracket.champion}</b></div>
-    <div class="bracket-wrap">`;
-
-  bracket.rounds.forEach((round,ri)=>{
-    html+=`<div class="bracket-round"><div class="round-label">${round.name}</div>`;
-    round.games.forEach(g=>{
-      const wSchool=bracket.field.find(t=>t.abbr===g.w);
-      const lSchool=bracket.field.find(t=>t.abbr===g.l);
-      const wMine=wSchool&&wSchool.conf===playerConf;
-      const lMine=lSchool&&lSchool.conf===playerConf;
-      html+=`<div class="bracket-match${g.buzzer?" buzzer":""}">
+  let html="";
+  if(round>0){
+    html+=`<div style="font-size:9.5px;letter-spacing:1px;color:var(--dim);margin-bottom:8px;text-align:center;text-transform:uppercase">${bracket.rounds.slice(0,round).map(rr=>rr.name).join(" → ")} — final</div>`;
+  }
+  html+=`<div class="bracket-round" style="margin:0 auto;max-width:340px">`;
+  r.games.forEach((g,i)=>{
+    const wSchool=bracket.field.find(t=>t.abbr===g.w);
+    const lSchool=bracket.field.find(t=>t.abbr===g.l);
+    const wMine=wSchool&&wSchool.conf===playerConf;
+    const lMine=lSchool&&lSchool.conf===playerConf;
+    if(i<shown){
+      html+=`<div class="bracket-match${g.buzzer?" buzzer":""} reveal">
         <div class="team winner${wMine?" mine":""}"><span class="seed">${wSchool?wSchool.seed:""}</span><span style="color:${wSchool?.color||"#fff"}">${g.w}</span><span>${g.score[0]}</span></div>
         <div class="team${lMine?" mine":""}"><span class="seed">${lSchool?lSchool.seed:""}</span><span style="color:${lSchool?.color||"#888"}">${g.l}</span><span>${g.score[1]}</span></div>
       </div>`;
-    });
-    html+=`</div>`;
+    } else {
+      html+=`<div class="bracket-match" style="opacity:.3"><div class="team"><span>?</span><span>vs</span></div><div class="team"><span>?</span></div></div>`;
+    }
   });
-
-  html+=`</div>`;
-
-  if(bracket.playerChamp>0){
-    html+=`<div style="text-align:center;margin-top:10px"><span style="font-size:32px">🏆</span><div style="font-size:16px;font-weight:900;color:var(--gold)">YOUR CONFERENCE WINS THE NATIONAL CHAMPIONSHIP!</div></div>`;
+  html+="</div>";
+  const wrap=$("bracketWrap");
+  if(wrap)wrap.innerHTML=html;
+}
+function scheduleReveal(token){
+  const isChamp=()=>bracketUI&&bracketUI.round===bracketUI.bracket.rounds.length-1;
+  function step(){
+    if(!bracketUI||bracketUI.token!==token)return;
+    const r=bracketUI.bracket.rounds[bracketUI.round];
+    if(bracketUI.shown>=r.games.length){onRoundComplete();return;}
+    const delay=isChamp()?2000:500;
+    setTimeout(()=>{
+      if(!bracketUI||bracketUI.token!==token)return;
+      const g=r.games[bracketUI.shown];
+      bracketUI.shown++;
+      renderBracketRoundBody();
+      if(g.buzzer){screenShake();sfxBuzzer();}
+      if(isChamp()){
+        sfxCheer();sfxDrain();
+        const champSchool=bracketUI.bracket.field.find(t=>t.abbr===g.w);
+        if(champSchool&&champSchool.conf===S.player){spawnConfetti();screenShake();}
+      }
+      step();
+    },delay);
   }
-
-  html+=`<div class="btnRow"><button class="btn-cta" onclick="hideModal()">Continue</button></div>`;
-  showModal(html);
+  step();
+}
+function onRoundComplete(){
+  if(!bracketUI)return;
+  const {bracket,round}=bracketUI;
+  const isLast=round>=bracket.rounds.length-1;
+  const btns=$("bracketBtns");
+  if(!btns)return;
+  if(isLast){
+    let extra="";
+    if(bracket.playerChamp>0){
+      extra=`<div style="text-align:center;margin:10px 0"><span style="font-size:32px">🏆</span><div style="font-size:16px;font-weight:900;color:var(--gold)">YOUR CONFERENCE WINS THE NATIONAL CHAMPIONSHIP!</div></div>`;
+    } else {
+      extra=`<div style="text-align:center;margin:10px 0;color:var(--dim)">National Champion: <b style="color:var(--gold)">${bracket.champion}</b></div>`;
+    }
+    const foot=$("bracketFoot");if(foot)foot.innerHTML=extra;
+    btns.innerHTML=`<button class="btn-cta" onclick="hideModal()">Continue</button>`;
+  } else {
+    btns.innerHTML=`<button class="btn-ghost" onclick="hideModal()">Skip to End</button><button class="btn-cta" onclick="bracketNextRound()">NEXT ROUND ▸</button>`;
+  }
+}
+function bracketNextRound(){
+  if(!bracketUI)return;
+  bracketUI.round++;bracketUI.shown=0;
+  const sub=$("bracketSub");if(sub)sub.textContent=`${bracketUI.bracket.playerBids} bids | ${bracketUI.bracket.rounds[bracketUI.round].name}`;
+  const btns=$("bracketBtns");if(btns)btns.innerHTML="";
+  const foot=$("bracketFoot");if(foot)foot.innerHTML="";
+  renderBracketRoundBody();
+  scheduleReveal(bracketUI.token);
 }
 
 /* ============================================================
@@ -1806,6 +2235,28 @@ function startGame(conf){
   S.news.push({yr:S.year,txt:`🏀 <b>Welcome, Commissioner.</b> You lead the <b>${S.confs[conf].name}</b>. Build a dynasty. Dominate March. Make history.`,cls:"good"});
   S.news.push({yr:S.year,txt:`💡 <b>Tip:</b> Place bets, predict champions, and declare wars for extra rewards! Upgrades unlock with prestige.`,cls:"event"});
   renderAll();
+  setTimeout(showCommissionerTip,600);
+}
+
+/* ============================================================
+   COMMISSIONER TIPS
+   ============================================================ */
+function showCommissionerTip(){
+  if(localStorage.getItem("hoopsWars_tipShown"))return;
+  const box=$("tipBox");
+  if(!box)return;
+  box.innerHTML=`<b>💡 Welcome, Commissioner.</b><br>Start by courting a school (🎯) to grow your conference.<br>Use your 4 Action Points wisely — they don't carry over.<br>Press <b>SPACEBAR</b> to quickly advance seasons.
+    <div class="btnRow"><button class="btn-sm btn-cta" onclick="dismissTip()">Got it</button></div>`;
+  box.classList.add("on");
+  clearTimeout(box._tid);
+  box._tid=setTimeout(dismissTip,8000);
+  localStorage.setItem("hoopsWars_tipShown","1");
+}
+function dismissTip(){
+  const box=$("tipBox");
+  if(!box)return;
+  box.classList.remove("on");
+  clearTimeout(box._tid);
 }
 
 function resumeGame(){
@@ -1911,11 +2362,22 @@ function showEndScreen(){
     </div>
     ${badges.length?`<div class="secLbl">Achievements (${badges.length}/${BADGES.length})</div><div style="margin-top:6px">${badges.map(b=>`<span class="badge earned" title="${b.desc}">${b.name}</span>`).join("")}</div>`:""}
     <div class="btnRow" style="margin-top:16px">
+      ${!S.confs[S.player].dead?`<button class="btn-gold" onclick="keepPlaying()">KEEP PLAYING — 10 MORE SEASONS ▸</button>`:""}
       <button class="btn-cta" onclick="deleteSave();showStartScreen()">Play Again</button>
       <button class="btn-ghost" onclick="hideModal()">View Final State</button>
     </div>`;
   showModal(html);
   if(totalChamps>0)spawnConfetti();
+}
+
+function keepPlaying(){
+  S.endYear+=10;
+  S.over=false;
+  S.overtimeCount=(S.overtimeCount||0)+1;
+  hideModal();
+  renderAll();
+  toast(`🏀 Overtime! Playing until ${S.endYear}.`);
+  autoSave();
 }
 
 /* ============================================================
