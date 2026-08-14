@@ -1001,10 +1001,12 @@ function seasonStories(st){
   for(const s of st.schools){
     let dr=rng()*2-1;
     if(s.conf!=="sl"){
-      const rich=payoutOf(st,s.conf)/topPay;          // TV money buys recruiting, facilities, exposure
+      const rich=payoutOf(st,s.conf)/topPay;
       dr+=(rich-0.4)*0.9;
-    } else dr+=0.5;
+    } else dr+=0.25;
     if(s.devUntil&&s.devUntil>st.year)dr+=2;
+    if(s.brand>=88)dr-=(s.brand-85)*0.12;
+    if(s.brand>=94)dr-=0.5+rng()*0.5;
     s.brand=Math.max(35,Math.min(99,s.brand+dr));
   }
   // ---- a dilemma lands on your desk ----
