@@ -387,6 +387,8 @@ const SCHOOL_COLORS={
  TROY:"#8A2432",MTSU:"#0066CC",NT:"#00853E",ARST:"#CC092F",ULL:"#CE181E",FAU:"#BF2F38",FIU:"#B6862C",
  RICE:"#8996A0"
 };
+const VOLATILE=new Set(["FSU","TEX","TAMU","OU","MIA","NEB","USC","ORE","COL","OKST","WVU","UCF","MEM","LOU","ARIZ","GT"]);
+const CONF_LOYALTY={sec:12,b1g:8,acc:5,pac:3,b12:2,be:0,swc:-2,b8:1,mwc:-3,cusa:-5,mac:-6,wac:-7,sbc:-8,g5:0};
 const RIVALRIES=[
   ["MICH","OSU","The Game"],["BAMA","AUB","Iron Bowl"],["TEX","OU","Red River Shootout"],
   ["TEX","TAMU","Lone Star Showdown"],["FSU","MIA","Florida rivalry"],["FSU","FLA","Sunshine Showdown"],
@@ -659,6 +661,8 @@ function acceptChance(st,school,toId,opt){
   if(isG5(from)&&!isG5(toId))p+=22;          // everyone wants the call-up
   if(isG5(from)&&isG5(toId))p+=8;            // lateral G5 moves are easier too
   if(school.grudge===toId)p-=40;             // you expelled them once. they remember.
+  p-=(CONF_LOYALTY[from]||0);               // some conferences just hold tighter
+  if(VOLATILE.has(school.abbr)&&school.mood<45)p+=10;  // volatile + unhappy = itchy feet
   if(school.gorUntil&&school.gorUntil>st.year)p-=28;   // grant of rights is a fortress
   if(st.confs[from]&&st.confs[from].wounded>st.year)p+=15;   // nobody wants to be last off a sinking ship
   if(opt.sweeten)p+=15;
@@ -941,6 +945,7 @@ function seasonMoods(st){
     if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));  // travel weariness
     if(s.gorUntil&&s.gorUntil>st.year)d-=1;                                     // GOR resentment drip
     d+=(rng()*6-3);
+    if(VOLATILE.has(s.abbr))d*=1.6+(rng()*0.4);
     s.mood=Math.max(5,Math.min(98, s.mood+(50-s.mood)*0.08+d ));
   }
 }
@@ -1076,7 +1081,15 @@ function runFlavor(st){
        `\u{1F31F} Nobody outside ${t.name}'s area code gave them a chance. They went unbeaten anyway.`]),"good");}],
    [3,()=>{const t=pick(pool.filter(x=>x.brand>=70));if(!t)return;t.brand=Math.max(35,t.brand-5);t.mood-=6;
      news(st,tmpl([`\u{1F6A8} Booster scandal at <b>${t.name}</b>. The bag man had a bag man. NCAA on line one.`,
-       `\u{1F6A8} A ${t.name} booster's group chat leaks. It's bad. The compliance office is on fire.`]),"poach");}]
+       `\u{1F6A8} A ${t.name} booster's group chat leaks. It's bad. The compliance office is on fire.`]),"poach");}],
+   [7,()=>{const vols=pool.filter(x=>VOLATILE.has(x.abbr));const t=pick(vols);if(!t)return;
+     if(rng()<0.5){t.mood=Math.max(5,t.mood-12);
+       news(st,tmpl([`\u{1F4A2} <b>${t.name}</b> boosters are furious. "We deserve better than this conference." The AD is on a very short leash.`,
+         `\u{1F4A2} <b>${t.name}</b>'s board meets behind closed doors. Sources say they're "exploring options." Translation: phones are ringing.`,
+         `\u{1F4A2} ${t.name}'s fanbase erupts. Open letters, fired coordinators, billboards on the highway. Mood: nuclear.`]),"poach");
+     }else{t.mood=Math.min(98,t.mood+10);t.brand=Math.min(99,t.brand+2);
+       news(st,tmpl([`\u{1F929} <b>${t.name}</b> is riding high — sellouts, five-stars signing, boosters writing checks. The drama? What drama?`,
+         `\u{1F929} ${t.name} goes on a heater. The fanbase goes from "burn it down" to "dynasty" in eight weeks flat.`]),"good");}}]
   ];
   const tot=acts.reduce((a,x)=>a+x[0],0);let r=rng()*tot;
   for(const wf of acts){r-=wf[0];if(r<0){wf[1]();return;}}
@@ -1408,6 +1421,37 @@ function queueEmpire(st){                  // ruling is its own game
           else{c.pen.push({until:st.year+3,pct:0.12});news(st,`🏛 The feds win. Forced revenue sharing, three years.`,"poach");log(st,"Lost the antitrust case");}}}
       ]}});
   }
+  if(rng()<0.4&&mem.length>=10&&(st.evtCd.revolt===undefined||st.evtCd.revolt+3<=st.year)){
+    st.evtCd.revolt=st.year;
+    const unhappy=mem.filter(s=>s.mood<50);
+    if(unhappy.length>=3){
+      st.queue.push({type:"choice",spec:{
+        title:"Member revolt brewing",sub:`${st.year} · the empire frays`,
+        body:`${unhappy.length} of your schools are openly unhappy. Boosters are meeting without you. Do something, or watch them walk.`,
+        opts:[
+          {label:"EMERGENCY REVENUE SHARE",kbd:"+10 mood all unhappy · −5% rev for 2 yrs",fn:()=>{
+            c.pen.push({until:st.year+2,pct:0.05});unhappy.forEach(s=>s.mood=Math.min(98,s.mood+10));
+            news(st,`💸 You open the vault to calm the rebels. Expensive, but the empire holds.`,"money");log(st,"Paid off unhappy members");}},
+          {label:"LET THEM TALK",kbd:"Risky — unhappy schools may leave",fn:()=>{
+            unhappy.forEach(s=>{if(rng()<0.3){moveSchool(st,s,"g5","had enough of empire life");s.mood=25;}});
+            news(st,`🚪 You called their bluff. Some of them weren't bluffing.`,"poach");log(st,"Ignored the member revolt");}}
+        ]}});
+    }
+  }
+  if(rng()<0.3&&(st.evtCd.intlSL===undefined||st.evtCd.intlSL+4<=st.year)){
+    st.evtCd.intlSL=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"International expansion offer",sub:`${st.year} · the empire goes global`,
+      body:`A European broadcast consortium wants exclusive Super League content. Massive money, but your members would play games at 9 AM local time.`,
+      opts:[
+        {label:"SIGN THE DEAL",kbd:"+12% media rev · all members −6 mood",fn:()=>{
+          c.tv.rate*=1.12;mem.forEach(s=>s.mood=Math.max(5,s.mood-6));
+          news(st,`🌍 The Super League goes global. London games, Tokyo games, 9 AM kickoffs in Tuscaloosa.`,"money");log(st,"Signed international deal");}},
+        {label:"STAY DOMESTIC",kbd:"Members +4 mood · no revenue change",fn:()=>{
+          mem.forEach(s=>s.mood=Math.min(98,s.mood+4));
+          news(st,`🏠 You keep Saturday where it belongs. The fanbase exhales.`,"good");log(st,"Rejected international expansion");}}
+      ]}});
+  }
 }
 
 function top16(st){return [...st.schools].sort((a,b)=>b.brand-a.brand).slice(0,16);}
@@ -1515,7 +1559,6 @@ function playerCcg(st){
   log(st,`Launched the championship game`);
 }
 function cropRefresh(st){
-  if(!isG5(st.player))return;
   const avail=FCS_POOL.filter(r=>!st.fcsUsed.includes(r[0]));
   if(!avail.length){st.fcsCrop=null;return;}
   if(st.fcsCrop&&st.year-st.fcsCrop.yr<3&&st.fcsCrop.list.some(e=>!st.fcsUsed.includes(e.abbr)))return;
@@ -1534,7 +1577,7 @@ function cropRefresh(st){
   }
 }
 function playerPromote(st,row,brandOverride){
-  spendAP(st,2);
+  spendAP(st,isG5(st.player)?2:3);
   const s={id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],brand:brandOverride||row[4],market:row[5],
     conf:st.player,orig:st.player,aau:false,mood:88,ind:false,lastCourt:st.year,color:row[6]};
   st.schools.push(s);
@@ -1897,13 +1940,13 @@ function renderStandings(){
 function renderActions(){
   const b=$("actionsBody");b.innerHTML="";
   const c=S.confs[S.player];
-  const fcsReady=isG5(S.player)&&S.fcsUsed.length<FCS_POOL.length;
+  const fcsReady=S.fcsUsed.length<FCS_POOL.length;
   const mem=members(S,S.player);
   const avgMood=mem.length?mem.reduce((a,s)=>a+s.mood,0)/mem.length:0;
   const gorActive=c.gorLabel&&c.gorLabel>S.year;
   const acts=[
     {ic:"🎯",tt:"Court a school",td:"Pitch an outsider on joining you",ap:1,ok:canAct(S,1),fn:targetPicker},
-    {ic:"⛏",tt:"Promote an FCS program",td:!isG5(S.player)?"G5 leagues only — the powers don't shop in the FCS, they shop in the G5":(fcsReady?"See this year's crop of 5 scouted risers · one call-up per offseason":"The FCS well is dry"),ap:2,ok:isG5(S.player)&&canAct(S,2)&&fcsReady&&S.year-S.lastFcs>=1,fn:fcsPicker},
+    {ic:"⛏",tt:"Promote an FCS program",td:fcsReady?(isG5(S.player)?"See this year's crop of 5 scouted risers · one call-up per offseason":"Pluck from the FCS — costs more for a power conference"):"The FCS well is dry",ap:isG5(S.player)?2:3,ok:canAct(S,isG5(S.player)?2:3)&&fcsReady&&S.year-S.lastFcs>=1,fn:fcsPicker},
     {ic:"🏗",tt:"Invest in a program",td:"Grow a member's brand +2/yr for 3 yrs (−2% rev, 2 yrs)",ap:1,ok:canAct(S,1),fn:investPicker},
     {ic:"🤝",tt:"Retention package",td:"Shore up a restless member",ap:1,ok:canAct(S,1),fn:retainPicker},
     {ic:"🔒",tt:"Grant of Rights",td:gorActive?"Locked through "+c.gorLabel:avgMood>=60?"Lock everyone's rights for 8 yrs (needs happy league)":"Needs avg mood 60+ (now "+Math.round(avgMood)+")",ap:1,ok:canAct(S,1)&&!gorActive&&avgMood>=60,fn:()=>{playerGor(S);renderAll();}},
