@@ -983,7 +983,7 @@ function cropRefresh(st){
   for(let i=deck.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
   const list=deck.slice(0,5).map(r=>{
     const hot=rng()<0.18;
-    const b=Math.max(35,Math.min(60,Math.round(r[3]-2+rng()*8+(hot?8:0))));
+    const b=Math.max(35,Math.min(60,Math.round(r[4]-2+rng()*8+(hot?8:0))));
     return{abbr:r[0],brand:b,hot};
   });
   st.mmCrop={yr:st.year,list};
@@ -1422,9 +1422,9 @@ function mmPicker(){
   const rows=S.mmCrop.list.filter(e=>!S.mmUsed.includes(e.abbr)).map(e=>{
     const r=MID_MAJOR_POOL.find(x=>x[0]===e.abbr);
     return`<div class="mem" data-mm="${e.abbr}">
-      <span class="ab" style="color:${lum(r[5])>0.45?r[5]:"#e8ecfa"}">${e.abbr}</span>
+      <span class="ab" style="color:${lum(r[6])>0.45?r[6]:"#e8ecfa"}">${e.abbr}</span>
       <span class="nm">${r[1]}${e.hot?' <span style="color:var(--gold);font-weight:800">🔥 HOT</span>':""}</span>
-      <span class="br" style="width:96px">brand ${e.brand} · mkt ${r[4]}</span></div>`;
+      <span class="br" style="width:96px">brand ${e.brand} · mkt ${r[5]}</span></div>`;
   }).join("");
   showModal(`<h2>⛏ This cycle's mid-major crop</h2>
     <div class="sub">Five scouted risers — form varies, a fresh crop grows after every promotion. They join at 88 mood. 2 AP.</div>
