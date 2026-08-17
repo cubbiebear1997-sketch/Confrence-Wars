@@ -322,6 +322,60 @@ const G5C=["aac","mw","wcc"];
 const isG5=id=>G5C.includes(id)||id==="g5";
 const TIER_MULT={g5:0.30,aac:0.14,mw:0.12,wcc:0.10};
 
+const ERAS={
+ 1996:{label:"1996 · THE BIG EAST EMPIRE",sub:"Georgetown, UConn, and Syracuse under one roof. The Big East rules college basketball — and everyone wants a piece.",
+  dead:["aac","mw"],
+  conf:{
+    UCLA:"g5",ORE:"g5",USC:"g5",WASH:"g5",
+    MD:"acc",NEB:"b12",RUT:"be",
+    TEX:"b12",OU:"b12",TAMU:"b12",MIZ:"b12",
+    CIN:"g5",HOU:"g5",UCF:"g5",BYU:"g5",ARIZ:"g5",ASU:"g5",UTAH:"g5",TCU:"g5",WVU:"be",
+    SYR:"be",PITT:"be",BC:"be",MIA:"be",VT:"be",ND:"be",
+    LOU:"g5",CAL:"g5",STAN:"g5",SMU:"g5",
+    MARQ:"g5",CREIGH:"g5",XAV:"g5",BUTL:"g5",DPAU:"g5",
+    MEM:"g5",WICH:"g5",TEMP:"be",TLNE:"g5",ECU:"g5",USF:"g5",TLSA:"g5",UAB:"g5",NT:"g5",FAU:"g5",
+    SDSU:"g5",UNM:"g5",UNLV:"g5",BSU:"g5",CSU:"g5",WYO:"g5",NEV:"g5",FRES:"g5",USU:"g5",AF:"g5",
+    BYU2:"g5"},
+  brands:{UNLV:82,GTOWN:80,IND:86,UCLA:88,ARK:76},
+  flavor:{
+    be:{name:"Big East",blurb:"The most feared basketball conference alive. Georgetown, UConn, Syracuse, Villanova — all under one roof. Rule the Garden."},
+    acc:{name:"ACC",blurb:"Duke and North Carolina — Tobacco Road at its purest. Nine schools, no dilution, every night is war."},
+    b12:{name:"Big 12",blurb:"Born from the Big Eight and SWC. Kansas is the crown, but Texas brings the money. The Big 12 Tournament in KC is religion."}}},
+ 2005:{label:"2005 · THE GOLDEN AGE",sub:"The bracket you grew up with. One mega Big East, no NIL, no realignment — peak March Madness.",
+  dead:["aac"],
+  conf:{
+    UCLA:"g5",ORE:"g5",USC:"g5",WASH:"g5",
+    MD:"acc",NEB:"b12",RUT:"be",
+    TEX:"b12",OU:"b12",TAMU:"b12",MIZ:"b12",
+    CIN:"be",HOU:"g5",UCF:"g5",BYU:"mw",ARIZ:"g5",ASU:"g5",UTAH:"mw",TCU:"mw",WVU:"be",
+    SYR:"be",PITT:"be",ND:"be",LOU:"be",USF:"be",
+    CAL:"g5",STAN:"g5",SMU:"g5",
+    MARQ:"be",DPAU:"be",
+    CREIGH:"g5",XAV:"g5",BUTL:"g5",
+    MEM:"g5",WICH:"g5",TEMP:"g5",TLNE:"g5",ECU:"g5",TLSA:"g5",UAB:"g5",NT:"g5",FAU:"g5",
+    BSU:"g5",FRES:"g5",USU:"g5",NEV:"g5",
+    BYU2:"g5"},
+  brands:{CONN:86,SYR:84,DUKE:95,GONZ:72},
+  flavor:{
+    be:{name:"Big East",blurb:"Sixteen teams and the Garden. UConn, Syracuse, Louisville, Villanova — the last mega-conference. The split is coming. Survive it."}}},
+ 2014:{label:"2014 · THE GREAT SPLIT",sub:"The Big East just tore in half. Basketball purists kept the name; football schools became the AAC. NIL hasn't arrived yet.",
+  dead:[],
+  conf:{
+    UCLA:"g5",ORE:"g5",USC:"g5",WASH:"g5",
+    TEX:"b12",OU:"b12",
+    CIN:"aac",HOU:"aac",UCF:"aac",BYU:"wcc",
+    COL:"g5",ARIZ:"g5",ASU:"g5",UTAH:"g5",
+    CAL:"g5",STAN:"g5",SMU:"aac",
+    CONN:"aac",
+    WICH:"g5",UAB:"g5",NT:"g5",FAU:"g5"},
+  brands:{NOVA:84,CONN:90},
+  flavor:{
+    be:{name:"Big East",blurb:"They kept the name and the Garden. Villanova, Xavier, Creighton — basketball purists, no football baggage. Prove small is beautiful."},
+    aac:{name:"American",blurb:"Born from the Big East wreckage. UConn, Memphis, and Cincinnati carry the torch. Build something new from the ashes."}}},
+ 2024:{label:"2024 · THE NIL ERA",sub:"Post-realignment chaos. The transfer portal runs wild, NIL money changes everything, and March Madness has never been bigger.",
+  dead:[],conf:{}}
+};
+
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 let rng=Math.random;
 const $=id=>document.getElementById(id);
@@ -333,16 +387,22 @@ let S=null;
 
 function newState(playerConf,era){
   era=era||2024;
-  const schools=SCHOOL_ROWS.map((r,i)=>({
-    id:i,abbr:r[0],name:r[1],conf:r[2],orig:r[2],brand:r[3],
-    lat:r[4],lon:r[5],color:r[6],
-    mood:52+rng()*16,lastCourt:-99,aau:false,ind:false
-  }));
+  const eraDef=ERAS[era];
+  const schools=SCHOOL_ROWS.map((r,i)=>{
+    const cf=eraDef.conf[r[0]]!==undefined?eraDef.conf[r[0]]:r[2];
+    const br=(eraDef.brands&&eraDef.brands[r[0]]!==undefined)?eraDef.brands[r[0]]:r[3];
+    return {
+      id:i,abbr:r[0],name:r[1],conf:cf,orig:cf,brand:br,
+      lat:r[4],lon:r[5],color:r[6],
+      mood:52+rng()*16,lastCourt:-99,aau:false,ind:false
+    };
+  });
   const confs={};
   for(const id in CONF_META){
     confs[id]={id,...CONF_META[id],tv:{rate:0,expires:0,len:0},exitFee:10,
-      network:false,pen:[],dead:false,payout:0,hist:[],desperation:0,slWin:false,fought:0,lost:0,wounded:0,chest:0};
+      network:false,pen:[],dead:eraDef.dead.includes(id),payout:0,hist:[],desperation:0,slWin:false,fought:0,lost:0,wounded:0,chest:0};
   }
+  if(eraDef.flavor)for(const id in eraDef.flavor){if(confs[id]&&eraDef.flavor[id].name)confs[id].name=eraDef.flavor[id].name;if(confs[id]&&eraDef.flavor[id].blurb)confs[id].blurb=eraDef.flavor[id].blurb;}
   confs.g5={id:"g5",name:"Independent",hex:"#7b8fa8",diff:null,blurb:"",
     tv:{rate:0,expires:2099,len:99},exitFee:0,network:false,pen:[],dead:false,payout:0,hist:[],desperation:0,slWin:false,fought:0,lost:0,wounded:0,chest:0};
   const st={year:era,startYear:era,endYear:era+30,player:playerConf,ap:2,schools,confs,news:[],log:[],
@@ -1094,7 +1154,7 @@ function svgEl(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const 
 const lum=hex=>{const n=parseInt(hex.replace("#",""),16);return(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;};
 const inkFor=s=>lum(s.color||"#555")>0.45?"#111":("#fff");
 const confHex=cid=>S.confs[cid]?S.confs[cid].hex:"#7b8fa8";
-function eraName(y){return y<2024?"PRE-NIL ERA":y<2030?"NIL ERA":"SUPER LEAGUE ERA";}
+function eraName(y){return y<1999?"BIG EAST ERA":y<2005?"BCS ERA":y<2014?"GOLDEN AGE":y<2024?"PRE-NIL ERA":y<2030?"NIL ERA":"SUPER LEAGUE ERA";}
 
 function buildMapBase(){
   const svg=$("map");svg.innerHTML="";
@@ -1755,9 +1815,9 @@ function vaultModal(){
 }
 
 /* ---------- pick screen + boot ---------- */
-function startGame(confId,daily){
+function startGame(confId,daily,era){
   rng=daily?mulberry32(daily):Math.random;
-  S=newState(confId);
+  S=newState(confId,era);
   if(daily)S.daily=daily;
   const c=S.confs[S.player];
   if(daily)news(S,`🎲 <b>DAILY CHALLENGE:</b> everyone plays the ${c.name} today. Same chaos — outscore your friends.`,"good");
@@ -1783,42 +1843,58 @@ function showCoach(){
   d.querySelector("#coachX").addEventListener("click",dismiss);
   setTimeout(()=>{if(document.getElementById("coach"))dismiss();},45000);
 }
+let pickEra=2024;
+function playableAt(era){
+  rng=Math.random;
+  const tmp=newState("b1g",era);
+  return {tmp,list:ALLC.filter(id=>!tmp.confs[id].dead&&tmp.schools.some(s=>s.conf===id))};
+}
 function showPick(){
   rng=Math.random;
-  const tmp=newState("b1g");
-  const list=ALLC.filter(id=>!tmp.confs[id].dead&&tmp.schools.some(s=>s.conf===id));
+  const {tmp,list}=playableAt(pickEra);
   const card=id=>{
     const m=CONF_META[id];
+    const fl=ERAS[pickEra].flavor&&ERAS[pickEra].flavor[id];
     const mem=tmp.schools.filter(s=>s.conf===id);
     const flag=[...mem].sort((a,b)=>b.brand-a.brand)[0];
     const pay=tmp.confs[id].tv.rate/mem.length;
     const dl=m.diff==="med"?"MEDIUM":m.diff==="ext"?"EXTREME":m.diff.toUpperCase();
     return`<div class="pick" data-c="${id}">
-      <div class="nm"><i style="background:${m.hex}"></i>${m.name}</div>
-      <div class="meta">${mem.length} schools · ${fmtM(pay)}/school · flagship: ${flag.name}<br>${m.blurb}</div>
+      <div class="nm"><i style="background:${m.hex}"></i>${tmp.confs[id].name}</div>
+      <div class="meta">${mem.length} schools · ${fmtM(pay)}/school · flagship: ${flag.name}<br>${(fl&&fl.blurb)||m.blurb}</div>
       <div class="diff ${m.diff}">${dl}</div></div>`;
   };
+  const eraCard=e=>`<div class="pick" data-era="${e}" style="${e===pickEra?"border-color:var(--ora);box-shadow:0 0 14px #f9731633":""}">
+      <div class="nm" style="font-size:13px">${ERAS[e].label}</div>
+      <div class="meta">${ERAS[e].sub}</div></div>`;
   const sv=loadSave();
   const p5s=list.filter(id=>!isG5(id)),g5s=list.filter(id=>isG5(id));
   showModal(`<h2>HOOPS <span style="color:var(--ora)">WARS</span></h2>
-    <div class="sub">Pick your league. Thirty seasons of TV money, March Madness, and betrayal — <b>survive and finish on top.</b></div>
+    <div class="sub">Pick your era, pick your league. Thirty seasons of March Madness, NIL money, and betrayal — <b>survive and finish on top.</b></div>
     ${sv?`<button class="btn-cta" id="resumeBtn" style="width:100%;margin:4px 0 8px;padding:12px">▶ RESUME — the ${sv.confs[sv.player].name}, ${sv.year}${sv.daily?" · 🎲 daily":""}</button>`:""}
-    <button class="btn-gold" id="dailyBtn" style="width:100%;margin-top:8px;padding:12px">🎲 DAILY CHALLENGE — same league for everyone today</button>
+    <div class="pickGrid" style="grid-template-columns:1fr 1fr">${[1996,2005,2014,2024].map(eraCard).join("")}</div>
+    <button class="btn-gold" id="dailyBtn" style="width:100%;margin-top:12px;padding:12px">🎲 DAILY CHALLENGE — same era + league for everyone today</button>
     <div class="secLbl">The Power Conferences</div>
     <div class="pickGrid">${p5s.map(card).join("")}</div>
-    <div class="secLbl">Underdog Mode — graded on the climb</div>
-    <div class="pickGrid">${g5s.map(card).join("")}</div>
+    ${g5s.length?`<div class="secLbl">Underdog Mode — graded on the climb</div>
+    <div class="pickGrid">${g5s.map(card).join("")}</div>`:""}
     <div class="kbd" style="margin-top:14px;text-align:center;opacity:.75">v1.0 · a fan-made simulation — not affiliated with or endorsed by any university, conference, or the NCAA</div>`);
   if(sv)$("resumeBtn").addEventListener("click",()=>resumeGame(sv));
+  $("modal").querySelectorAll("[data-era]").forEach(elm=>{
+    elm.addEventListener("click",()=>{pickEra=+elm.dataset.era;showPick();});
+  });
   $("dailyBtn").addEventListener("click",()=>{
     const d=new Date();
     const seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
     rng=mulberry32(seed);
-    const confId=list[Math.floor(rng()*list.length)];
-    startGame(confId,seed);
+    const era=[1996,2005,2014,2024][Math.floor(rng()*4)];
+    const dl=playableAt(era).list;
+    rng=mulberry32(seed+7);
+    const confId=dl[Math.floor(rng()*dl.length)];
+    startGame(confId,seed,era);
   });
   $("modal").querySelectorAll("[data-c]").forEach(elm=>{
-    elm.addEventListener("click",()=>{rng=Math.random;startGame(elm.dataset.c,null);});
+    elm.addEventListener("click",()=>{rng=Math.random;startGame(elm.dataset.c,null,pickEra);});
   });
 }
 $("btnAdvance").addEventListener("click",advance);
