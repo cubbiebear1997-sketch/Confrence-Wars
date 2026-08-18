@@ -542,7 +542,8 @@ function newState(playerConf,era){
     queue:[], ranks:[], over:false, aiBlock:0, slStarted:false, brandStart:0, titles:0, evtCd:{},
     champs:{}, ledger:[], daily:null, startRank:1, expels:0, slLost:0, slFormed:false, g5Natty:false,
     fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false,
-    slDiscovery:false, slHearings:false, slCoalition:false, slRaidSlow:1, empirePrestige:0, empireRivals:0};
+    slDiscovery:false, slHearings:false, slCoalition:false, slRaidSlow:1, empirePrestige:0, empireRivals:0,
+    slYear:era+22};
   // opening TV deals (older conferences locked into older money)
   if(era===2005){
     const opening={b1g:[1.00,2007],sec:[1.05,2009],b12:[0.95,2011],acc:[0.90,2010],pac:[0.80,2011],be:[0.70,2008],
@@ -1338,12 +1339,15 @@ function yearEvents(st){
     }
   }
   if(y===2024)news(st,`🏆 The <b>12-team Playoff</b> arrives — and so does athlete revenue sharing. Bigger checks, bigger bills.`,"money");
-  if(y===2030&&!st.slStarted){st.slStarted=true;st.queue.push({type:"superLeague"});}
-  if(y>=2030&&st.slStarted)slPressure(st);
-  if(y>=2031&&st.slStarted)slRaid(st);
-  if(y>=2031&&st.slStarted)bustCheck(st);
-  if(y>=2031&&st.slStarted)slDefections(st);
-  if(y>=2031&&st.confs[st.player].slWin)queueEmpire(st);
+  if(y===st.slYear&&!st.slStarted){
+    st.slStarted=true;st.queue.push({type:"superLeague"});
+    if(st.endYear-y<10){st.endYear=y+10;news(st,`⏱ The board extends your tenure through ${st.endYear} — this fight needs a full decade.`,"good");}
+  }
+  if(y>=st.slYear&&st.slStarted)slPressure(st);
+  if(y>st.slYear&&st.slStarted)slRaid(st);
+  if(y>st.slYear&&st.slStarted)bustCheck(st);
+  if(y>st.slYear&&st.slStarted)slDefections(st);
+  if(y>st.slYear&&st.confs[st.player].slWin)queueEmpire(st);
 }
 function bustCheck(st){
   const sl=st.confs.sl;
@@ -1869,12 +1873,13 @@ function finalScore(){
   const brandPts=14*(brandRatio/1.4);
   const titlePts=Math.min(8,S.titles*2);
   const slPts=c.slWin?8:0;
-  const bustPts=S.slBusted?8:0;
+  const bustPts=S.slBusted?8:(!S.slStarted?0:Math.min(6,Math.round(S.slCase*2)));
   const coalPts=S.slCoalition?2:0;
-  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts+coalPts));
+  const defenderPts=(S.slFormed&&!c.slWin&&S.slLost===0&&!S.slBusted)?3:0;
+  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts+coalPts+defenderPts));
   const grade=letterOf(score);
   const soul=soulScore();
-  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,coalPts,soul,soulGrade:letterOf(soul)};
+  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,coalPts,defenderPts,soul,soulGrade:letterOf(soul)};
 }
 
 /* ============================================================
@@ -1883,7 +1888,7 @@ function finalScore(){
 const SVGNS="http://www.w3.org/2000/svg";
 function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 
-function eraName(y){return y<1992?"THE OLD WORLD":y<1998?"THE GREAT SHUFFLE":y<2014?"BCS ERA":y<2024?"PLAYOFF ERA":y<2030?"12-TEAM ERA":"SUPER LEAGUE ERA";}
+function eraName(y){if(S&&S.slStarted&&y>=S.slYear)return"SUPER LEAGUE ERA";return y<1992?"THE OLD WORLD":y<1998?"THE GREAT SHUFFLE":y<2014?"BCS ERA":y<2024?"PLAYOFF ERA":"EXPANSION ERA";}
 const confHex=cid=>S.confs[cid]?S.confs[cid].hex:"#7b8fa8";
 
 function buildMapBase(){
@@ -2153,7 +2158,7 @@ function renderActions(){
       const ready=am>=65&&fp2.mult>=1;
       return {ic:"🎓",tt:"Lead the Restoration",td:ready?"Sign the Scholarship Charter — give the sport back":"Needs a REGIONAL/NATIONAL footprint and 65+ avg mood (now "+Math.round(am)+", "+fp2.label+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerRestore(S);renderAll();}};
     })()]:[]),
-    ...((S.year>=2030&&!S.confs.sl&&!c.slWin)?[(()=>{
+    ...((S.year>=S.slYear&&!S.confs.sl&&!c.slWin)?[(()=>{
       const mine=top16(S).filter(s=>s.conf===S.player).length;
       const aliveR=ALLC.filter(id=>!S.confs[id].dead).sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
       const rk=aliveR.indexOf(S.player)+1;
@@ -2479,14 +2484,14 @@ function superLeagueModal(done){
   if(mine>=5){
     S.confs[S.player].slWin=true;
     showModal(`<h2>👑 You ARE the Super League</h2>
-      <div class="sub">2030 · the breakaway wants in with YOU</div>
+      <div class="sub">${S.year} · the breakaway wants in with YOU</div>
       <div class="body">You control <b>${mine} of the top 16 brands</b> in the sport. The breakaway organizers can't build it without you — so they build it around you. Media rate up 30%, permanently.</div>
       <div class="btnRow"><button class="btn-cta" id="slk">TAKE THE THRONE</button></div>`);
     $("slk").onclick=()=>{news(S,"👑 <b>Your league becomes the spine of the Super League.</b> Everyone else fights for scraps.","good");log(S,"Became the Super League");hideModal();done();};
   } else {
     const slMem=top16(S).filter(s=>s.conf!==S.player).length;
     showModal(`<h2>⚡ The Super League Ultimatum</h2>
-      <div class="sub">2030 · a private-equity-backed breakaway targets the top 16 brands</div>
+      <div class="sub">${S.year} · a private-equity-backed breakaway targets the top 16 brands</div>
       <div class="body">Private equity is bankrolling a breakaway "Super League" — ${slMem} schools outside your league and <b>${mine} of yours</b> are on the invite list. They're offering 3x the money. Your members are listening.<br><br>
       <b>If you fight:</b> You'll get protection for 3 years, then you'll need to fund the antitrust case (3 filings to bust them), raid their unhappy members, and build a coalition. It's a war — but it's winnable.<br><br>
       <b>If you don't fight:</b> They'll pick your league apart year by year.</div>
@@ -2701,7 +2706,7 @@ function endChart(){
     <polygon points="${P},${H-P} ${mine} ${X(y1).toFixed(1)},${H-P}" fill="${c.hex}" opacity="0.13"/>
     <polyline points="${led}" fill="none" stroke="#5b7294" stroke-width="1.6" stroke-dasharray="5 4"/>
     <polyline points="${mine}" fill="none" stroke="${c.hex}" stroke-width="2.6" stroke-linejoin="round"/>
-    <text x="${P+2}" y="15" fill="#8fa8c9" font-size="10.5">the thirty-year race — <tspan fill="${c.hex}" font-weight="700">your payout</tspan> vs <tspan fill="#7f97bb">the field's best</tspan></text>
+    <text x="${P+2}" y="15" fill="#8fa8c9" font-size="10.5">the ${S.year-S.startYear}-year race — <tspan fill="${c.hex}" font-weight="700">your payout</tspan> vs <tspan fill="#7f97bb">the field's best</tspan></text>
     <text x="${P+2}" y="${H-P+1}" fill="#5b7294" font-size="9">${y0}</text>
     <text x="${W-P-26}" y="${H-P+1}" fill="#5b7294" font-size="9">${y1}</text>
     <text x="${W-P-4}" y="30" fill="var(--gold)" font-size="11" font-weight="700" text-anchor="end">${fmtM(hist[hist.length-1].pay)}/school at the end</text>
@@ -2735,6 +2740,13 @@ function epilogueText(g){
       if(S.slCoalition)p.push(`The coalition you assembled — every conference, one legal front — was the weapon that ended it.`);
       const slRaided=S.ledger.filter(l=>l.from==="Super League"&&l.toId===S.player);
       if(slRaided.length)p.push(`You didn't just beat them — you poached ${slRaided.length} of their schools on the way down.`);
+    } else if(S.slStarted&&S.slCase>=1&&!c.slWin){
+      const prog=S.slCase>=2?`Congressional hearings were underway. Emails were leaked. The Super League was cracking.`
+        :`The discovery phase was open — their secrets were on the table.`;
+      p.push(`The antitrust case was at <b>${S.slCase.toFixed(1)}/3</b> when your tenure ended. ${prog}`);
+      if(S.slCoalition)p.push(`The coalition held. Your successor inherits the weapon you built.`);
+    } else if(S.slFormed&&S.slLost>0&&!c.slWin){
+      p.push(`The Super League took ${S.slLost} of your schools. The wound never fully closed.`);
     }
     if(S.restored)p.push(`Then you did the thing nobody believed possible: sent the money to the NFL and kept the Saturdays for the kids.`);
     if(S.confs[S.player].concordat)p.push(`The Concordat kept your league rich and whole. What it cost doesn't show up on the wire transfer.`);
@@ -2757,8 +2769,12 @@ function endScreen(){
   const gc=g.grade==="S"?"var(--gold)":g.grade[0]==="A"?"var(--green)":g.grade[0]==="B"?"var(--teal)":g.grade[0]==="C"?"var(--gold)":"var(--red)";
   const headline=g.dead?`☠ <b>The ${c.name} is dead.</b> You presided over its funeral.`
     :S.restored?`🎓 <b>You gave the sport back.</b> Regional Saturdays, scholarships first — and the money went where money goes.`
+    :S.slBusted?`⚖ <b>You killed the Super League.</b> The courtroom, not the boardroom, decided the future of the sport.`
     :g.slWin?`👑 You didn't survive the realignment era — <b>you ended it.</b>`
+    :(S.slStarted&&S.slCase>=2&&!S.slBusted)?`⚖ <b>The case was building — but time ran out.</b> Congressional hearings, leaked emails, a coalition of the willing — another few years and the Super League was dead.`
+    :(S.slStarted&&S.slCase>=1&&!S.slBusted)?`⚖ <b>You took the fight to court.</b> The discovery phase shook them, but the gavel never fell.`
     :(S.slFormed&&S.slLost===0)?`🛡 The breakaway came for your best — <b>and your league didn't crack.</b>`
+    :(S.slFormed&&S.slLost>0)?`💔 The Super League took ${S.slLost} of yours. The ${c.name} survived — but the scars are permanent.`
     :`${members(S,S.player).length} schools · ${fmtM(payoutOf(S,S.player))}/school · ${S.titles} national title${S.titles===1?"":"s"}.`;
   const bd=gameBadges(g);
   const badgeRow=bd.length?`<div class="reveal" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;animation-delay:1.5s">${bd.map((x,i)=>`<span class="lg reveal" title="${x[2]}" style="font-size:11px;padding:5px 10px;animation-delay:${1.5+i*0.18}s">${x[0]} ${x[1]}</span>`).join("")}</div>`:"";
@@ -2768,7 +2784,7 @@ function endScreen(){
   const recap=Object.keys(chapters).sort().map(d=>
     `<div style="margin-top:7px"><b style="color:var(--teal);letter-spacing:1.5px;font-size:11px">THE ${d}s</b></div>`+
     chapters[d].map(l=>`<div><b>${l.yr}</b> — ${l.txt}</div>`).join("")
-  ).join("")||"<div>A quiet three decades. Suspiciously quiet.</div>";
+  ).join("")||`<div>A quiet ${S.year-S.startYear} years. Suspiciously quiet.</div>`;
   const share=`CONFERENCE WARS${S.daily?" DAILY "+S.daily:""} — I ran the ${c.name} from ${S.startYear}→${S.year}. Money: ${g.grade}${g.dead?" (league DIED)":" · Soul: "+g.soulGrade+" · "+fmtM(payoutOf(S,S.player))+"/school"}${S.titles?" · "+S.titles+" natties":""}${bd.map(x=>" · "+x[0]+" "+x[1]).join("")}. Can you save the SWC?`;
   showModal(`<h2 style="text-align:center">FINAL GRADE</h2>
     <div class="sub" style="text-align:center">${S.daily?"🎲 DAILY "+S.daily+" · ":""}${c.name} · ${S.startYear}–${S.year} · started #${S.startRank}${g.dead?" · dissolved "+(c.diedYr||S.year):""}</div>
@@ -2784,8 +2800,9 @@ function endScreen(){
       ["THE CLIMB",g.climbPts,18,"started #"+S.startRank+" — every rank you finish above it pays"],
       ["TITLES",g.titlePts,8,S.titles+" national championship"+(S.titles===1?"":"s")+" (+2 each)"],
       ...(g.slPts?[["SUPER LEAGUE",g.slPts,8,"you took the throne"]]:[]),
-      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,8,"you killed the Super League in court"]]:[]),
-      ...(g.coalPts?[["COALITION LEADER",g.coalPts,2,"you united the sport against the breakaway"]]:[])
+      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,8,S.slBusted?"you killed the Super League in court":"antitrust case progress — "+S.slCase.toFixed(1)+"/3 filings"]]:[]),
+      ...(g.coalPts?[["COALITION LEADER",g.coalPts,2,"you united the sport against the breakaway"]]:[]),
+      ...(g.defenderPts?[["IRON CURTAIN",g.defenderPts,3,"the breakaway came and your league held"]]:[])
     ].map(r=>`<div class="mrow" style="border-bottom:1px solid #1e3a5f44">
       <span style="width:118px;flex:none;font-size:10.5px;letter-spacing:1.2px;font-weight:800;color:var(--dim)">${r[0]}</span>
       <span style="flex:1;color:#a9bcd9;font-size:11.5px">${r[3]}</span>
