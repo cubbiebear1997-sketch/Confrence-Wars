@@ -175,6 +175,26 @@
   #mobNote{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:90;background:#122441f2;border:1px solid var(--line);border-radius:10px;padding:9px 30px 9px 13px;font-size:12px;max-width:92%}
   #mobNote .x{position:absolute;top:5px;right:9px;cursor:pointer;color:var(--dim);font-weight:800}
   @media (max-width:920px){ #app{min-width:1180px} body{overflow:auto} }
+
+  /* ---------- enhancements ---------- */
+  @keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.35}}
+  .expiring{animation:pulse-warn 1.4s ease infinite}
+  .act{transition:transform .12s, box-shadow .15s}
+  .act:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 4px 16px #0008}
+  .mem{transition:background .12s, border-color .12s, transform .1s}
+  .mem:hover{transform:translateX(3px)}
+  .chip{transition:transform .12s}
+  .chip:hover{transform:translateY(-1px)}
+  .stat{transition:background .2s}
+  .stat:hover{background:#162a49}
+  #undoBtn,#soundBtn,#autoBtn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px}
+  #undoBtn:disabled{opacity:.2}
+  #autoBtn.on{background:var(--teal-d);color:#04241f;border-color:transparent}
+  .pick{transition:transform .12s, box-shadow .15s}
+  .pick:hover{transform:translateY(-2px)}
+  #btnAdvance{transition:box-shadow .2s}
+  #btnAdvance:hover:not(:disabled){box-shadow:0 0 24px #14b8a644}
+  .kbd-hint{display:inline-block;background:#0d1a2e;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:9.5px;color:var(--dim);font-family:monospace;margin-left:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -187,6 +207,9 @@
     <div class="chip"><div class="k">Nat'l Rank</div><div class="v" id="uiRank">—</div></div>
     <div class="chip"><div class="k">Actions Left</div><div class="v teal" id="uiAP">2</div></div>
     <div class="spacer"></div>
+    <button id="undoBtn" disabled title="Undo last action (Z)">↩ UNDO</button>
+    <button id="soundBtn" title="Toggle sound (M)">🔊</button>
+    <button id="autoBtn" title="Auto-advance seasons (A)">▶▶ AUTO</button>
     <button class="btn-ghost" id="btnRich" title="Program and conference valuations — the money behind the map">💰 RICH LIST</button>
     <button class="btn-ghost" id="btnVault" title="Titles, records, and every move ever made">📜 VAULT</button>
     <button class="btn-cta" id="btnAdvance">ADVANCE SEASON ▸</button>
@@ -364,6 +387,23 @@ const SCHOOL_COLORS={
  TROY:"#8A2432",MTSU:"#0066CC",NT:"#00853E",ARST:"#CC092F",ULL:"#CE181E",FAU:"#BF2F38",FIU:"#B6862C",
  RICE:"#8996A0"
 };
+const VOLATILE=new Set(["FSU","TEX","TAMU","OU","MIA","NEB","USC","ORE","COL","OKST","WVU","UCF","MEM","LOU","ARIZ","GT"]);
+const CONF_LOYALTY={sec:12,b1g:8,acc:5,pac:3,b12:2,be:0,swc:-2,b8:1,mwc:-3,cusa:-5,mac:-6,wac:-7,sbc:-8,g5:0};
+const RIVALRIES=[
+  ["MICH","OSU","The Game"],["BAMA","AUB","Iron Bowl"],["TEX","OU","Red River Shootout"],
+  ["TEX","TAMU","Lone Star Showdown"],["FSU","MIA","Florida rivalry"],["FSU","FLA","Sunshine Showdown"],
+  ["UGA","FLA","World's Largest Cocktail Party"],["USC","UCLA","Victory Bell"],
+  ["USC","ND","greatest intersectional rivalry"],["ORE","ORST","Civil War"],
+  ["WASH","WSU","Apple Cup"],["MICH","MSU","Paul Bunyan Trophy"],["IOWA","ISU","Cy-Hawk"],
+  ["KAN","MIZ","Border War"],["CLEM","SCAR","Palmetto Bowl"],["UNC","DUKE","Tobacco Road"],
+  ["PITT","WVU","Backyard Brawl"],["ARMY","NAVY","America's Game"],
+  ["CAL","STAN","The Big Game"],["NEB","OU","Game of the Century"],
+  ["VT","UVA","Commonwealth Cup"],["GT","UGA","Clean Old-Fashioned Hate"],
+  ["TENN","BAMA","Third Saturday in October"],["LSU","BAMA","rivalry of the century"],
+  ["OU","OKST","Bedlam"],["BAY","TCU","Revivalry"],["UTAH","BYU","Holy War"],
+  ["BSU","FRES","blue turf brawl"],["CIN","LOU","Keg of Nails"],
+  ["TOL","BGSU","Battle of I-75"],["HOU","SMU","Bayou Bucket"]
+];
 /* FCS programs a G5 commissioner can promote: [abbr, name, lat, lon, brand, market, color] */
 const FCS_POOL=[
  ["APP","Appalachian State",36.21,-81.68,46,34,"#FFCC00"],
@@ -393,7 +433,8 @@ const FCS_POOL=[
  ["TXST","Texas State",29.89,-97.94,44,62,"#A02040"]
 ];
 /* rough US outline, [lat,lon] — projected at runtime */
-const OUTLINE=[[48.4,-124.7],[46.2,-124.0],[43.0,-124.4],[40.4,-124.4],[38.9,-123.7],[36.6,-121.9],[34.45,-120.45],[33.7,-118.3],[32.55,-117.1],[32.7,-114.7],[31.33,-111.07],[31.33,-108.2],[31.78,-108.2],[31.78,-106.5],[29.7,-104.5],[29.2,-103.1],[29.8,-101.4],[27.5,-99.5],[25.9,-97.15],[28.0,-96.8],[29.3,-94.8],[29.2,-90.1],[30.2,-88.0],[30.4,-86.5],[29.9,-84.3],[28.0,-82.8],[26.7,-82.2],[25.2,-81.1],[25.1,-80.4],[26.7,-80.0],[28.5,-80.6],[30.7,-81.4],[32.0,-80.8],[33.9,-77.9],[35.2,-75.5],[36.9,-76.0],[38.0,-75.0],[39.3,-74.3],[40.5,-74.0],[41.1,-71.9],[41.6,-70.0],[42.05,-70.2],[43.1,-70.6],[44.8,-66.95],[47.3,-68.3],[45.3,-71.3],[45.0,-74.6],[44.1,-76.5],[43.3,-79.0],[42.9,-78.9],[42.3,-80.0],[41.7,-82.4],[42.1,-83.1],[43.6,-82.5],[45.8,-84.7],[46.5,-84.5],[48.0,-89.5],[48.0,-95.2],[49.0,-95.15],[49.0,-124.7]];
+const OUTLINE=[[49,-124.71],[49,-123.5],[49,-122],[49,-120.5],[49,-119],[49,-117.5],[49,-116.05],[49,-114.5],[49,-113],[49,-111.5],[49,-110],[49,-108.5],[49,-107],[49,-105.5],[49,-104.05],[49,-102.5],[49,-101],[49,-99.5],[49,-98],[49,-97.23],[49.38,-95.15],[49,-95.15],[48.72,-95.09],[48.6,-94.7],[48.63,-94.25],[48.52,-93.85],[48.42,-93.3],[48.3,-92.8],[48.22,-92.35],[48.1,-92],[48,-91.55],[47.98,-91],[48.02,-90.55],[48.08,-90.1],[48.1,-89.7],[47.9,-89.3],[47.72,-88.9],[47.55,-88.4],[47.4,-87.9],[47.25,-87.4],[47.1,-86.9],[46.95,-86.4],[46.8,-85.9],[46.6,-85.3],[46.5,-84.9],[46.48,-84.55],[46.5,-84.35],[46.3,-84.1],[46.1,-83.8],[45.9,-83.4],[45.7,-83],[45.4,-82.6],[45,-82.45],[44.6,-82.42],[44.2,-82.42],[43.8,-82.42],[43.4,-82.42],[43.1,-82.42],[42.85,-82.45],[42.6,-82.55],[42.4,-82.8],[42.3,-83.05],[42.1,-83.15],[41.95,-82.9],[41.8,-82.5],[41.72,-82],[41.7,-81.5],[41.72,-81],[41.8,-80.5],[41.95,-80.1],[42.1,-79.8],[42.3,-79.5],[42.5,-79.2],[42.7,-79.05],[43,-79],[43.15,-79.05],[43.25,-79.1],[43.4,-79.05],[43.55,-78.7],[43.65,-78.2],[43.7,-77.7],[43.68,-77.1],[43.6,-76.6],[43.65,-76.3],[43.8,-76.1],[44,-75.9],[44.2,-75.7],[44.4,-75.4],[44.6,-75.1],[44.8,-74.8],[44.95,-74.5],[45,-74.3],[45,-73.6],[45,-73],[45.01,-72.5],[45.01,-72],[45.01,-71.5],[45.2,-71.1],[45.35,-70.9],[45.5,-70.7],[45.65,-70.45],[45.8,-70.2],[45.95,-69.95],[46.1,-69.7],[46.3,-69.4],[46.5,-69.2],[46.7,-69],[46.9,-68.7],[47.1,-68.5],[47.17,-68.4],[47.27,-68.1],[47.36,-67.8],[47.07,-67.78],[46.8,-67.8],[44.9,-66.97],[44.75,-67.2],[44.55,-67.55],[44.4,-67.9],[44.3,-68.2],[44.15,-68.5],[44,-68.85],[43.9,-69.15],[43.8,-69.5],[43.7,-69.8],[43.6,-70.05],[43.5,-70.25],[43.35,-70.5],[43.22,-70.6],[43.07,-70.75],[42.88,-70.82],[42.75,-70.75],[42.65,-70.55],[42.58,-70.65],[42.52,-70.88],[42.35,-70.97],[42.25,-70.93],[42.18,-70.75],[42.05,-70.55],[41.95,-70.35],[41.9,-70],[41.8,-69.95],[41.67,-69.93],[41.58,-70],[41.65,-70.1],[41.72,-70.3],[41.75,-70.55],[41.68,-70.65],[41.56,-70.55],[41.43,-70.6],[41.38,-70.75],[41.35,-71.2],[41.28,-71.5],[41.19,-71.79],[41.15,-72.05],[41.08,-72.4],[41.02,-72.8],[40.98,-73.08],[40.95,-73.4],[40.92,-73.65],[40.8,-73.75],[40.73,-73.55],[40.66,-73.3],[40.6,-73],[40.58,-72.6],[40.6,-72.2],[40.68,-71.95],[40.8,-71.85],[41,-71.9],[41.08,-72],[40.7,-74],[40.5,-74.02],[40.38,-73.98],[40.2,-74],[40,-74.05],[39.8,-74.1],[39.6,-74.15],[39.4,-74.2],[39.28,-74.45],[39.15,-74.7],[39,-75],[38.85,-75.1],[38.8,-75.05],[38.6,-75.05],[38.4,-75.1],[38.2,-75.08],[38,-75.15],[37.8,-75.25],[37.6,-75.4],[37.4,-75.55],[37.2,-75.7],[37.05,-75.9],[36.95,-76],[36.9,-75.98],[36.82,-76],[36.85,-75.85],[36.8,-75.75],[36.7,-75.7],[36.45,-75.8],[36.2,-75.7],[35.9,-75.5],[35.6,-75.5],[35.3,-75.55],[35.1,-75.65],[34.9,-76.3],[34.7,-76.52],[34.6,-77],[34.5,-77.4],[34.3,-77.75],[34.15,-77.9],[33.9,-78],[33.7,-78.3],[33.5,-78.7],[33.3,-79],[33.1,-79.2],[32.9,-79.6],[32.7,-79.9],[32.5,-80.2],[32.3,-80.5],[32.1,-80.75],[31.9,-81],[31.7,-81.15],[31.5,-81.25],[31.3,-81.35],[31.1,-81.3],[30.9,-81.35],[30.7,-81.4],[30.5,-81.42],[30.3,-81.4],[30.1,-81.35],[29.9,-81.28],[29.7,-81.15],[29.5,-81.08],[29.3,-81],[29.1,-80.9],[28.9,-80.72],[28.7,-80.62],[28.5,-80.55],[28.4,-80.58],[28.3,-80.6],[28.1,-80.55],[27.8,-80.4],[27.5,-80.25],[27.2,-80.15],[27,-80.1],[26.8,-80.05],[26.6,-80.03],[26.4,-80.05],[26.2,-80.08],[26,-80.1],[25.8,-80.12],[25.6,-80.15],[25.4,-80.2],[25.2,-80.3],[25.05,-80.5],[24.9,-80.8],[24.7,-81.1],[24.55,-81.5],[24.55,-81.8],[24.8,-81.85],[25,-81.5],[25.1,-81.3],[25.15,-81.1],[25.3,-81.05],[25.6,-81.2],[25.8,-81.4],[26,-81.7],[26.2,-81.9],[26.4,-82],[26.6,-82.08],[26.8,-82.15],[27,-82.3],[27.2,-82.5],[27.4,-82.6],[27.6,-82.7],[27.8,-82.73],[27.9,-82.65],[27.85,-82.55],[27.75,-82.6],[27.7,-82.7],[27.55,-82.75],[28,-82.8],[28.2,-82.8],[28.4,-82.75],[28.6,-82.75],[28.8,-82.8],[29,-83],[29.1,-83.15],[29.2,-83.35],[29.3,-83.5],[29.35,-83.8],[29.5,-84],[29.6,-84.2],[29.7,-84.4],[29.85,-84.7],[29.9,-85],[29.95,-85.3],[29.85,-85.5],[29.8,-85.7],[30,-85.9],[30.1,-86.2],[30.25,-86.5],[30.3,-86.8],[30.35,-87],[30.33,-87.25],[30.28,-87.5],[30.23,-87.7],[30.22,-87.9],[30.25,-88],[30.2,-88.1],[30.2,-88.3],[30.21,-88.5],[30.22,-88.7],[30.21,-89],[30.2,-89.2],[30.15,-89.4],[30.1,-89.6],[30,-89.7],[29.85,-89.75],[29.7,-89.6],[29.55,-89.55],[29.4,-89.4],[29.25,-89.5],[29.15,-89.65],[29.05,-89.8],[29,-89.9],[29,-90.1],[29.1,-90.3],[29.15,-90.5],[29.25,-90.6],[29.2,-90.9],[29.1,-91.1],[29.2,-91.3],[29.3,-91.5],[29.4,-91.7],[29.55,-91.9],[29.6,-92.1],[29.55,-92.4],[29.65,-92.7],[29.7,-93],[29.75,-93.3],[29.73,-93.85],[29.6,-94],[29.5,-94.3],[29.4,-94.6],[29.33,-94.8],[29.3,-94.7],[29.2,-94.9],[29.08,-95.1],[28.95,-95.25],[28.8,-95.5],[28.65,-95.8],[28.5,-96],[28.35,-96.2],[28.2,-96.5],[28.05,-96.7],[27.85,-97],[27.65,-97.15],[27.45,-97.25],[27.25,-97.3],[27.05,-97.35],[26.85,-97.4],[26.65,-97.35],[26.45,-97.35],[26.25,-97.3],[26.07,-97.17],[25.97,-97.14],[26.1,-97.6],[26.3,-98.2],[26.5,-98.6],[26.75,-99],[27,-99.3],[27.3,-99.55],[27.5,-99.7],[27.8,-99.8],[28.1,-100.1],[28.35,-100.4],[28.65,-100.65],[28.95,-100.9],[29.2,-101.15],[29.35,-101.35],[29.5,-101.5],[29.6,-101.8],[29.55,-102.1],[29.45,-102.4],[29.35,-102.7],[29.25,-103],[29.4,-103.2],[29.55,-103.45],[29.7,-103.7],[29.85,-103.95],[30,-104.2],[30.15,-104.5],[30.3,-104.7],[30.5,-104.9],[30.7,-105.1],[30.9,-105.3],[31.1,-105.55],[31.3,-105.8],[31.5,-106.1],[31.76,-106.45],[31.78,-106.53],[31.78,-107],[31.78,-107.5],[31.78,-108.21],[31.33,-108.21],[31.33,-108.7],[31.33,-109.05],[31.33,-109.5],[31.33,-110],[31.33,-110.5],[31.33,-111.07],[31.45,-111.5],[31.6,-112],[31.7,-112.5],[31.8,-113],[31.9,-113.5],[32,-114],[32.2,-114.4],[32.5,-114.72],[32.54,-114.72],[32.58,-115.2],[32.62,-115.7],[32.62,-116.1],[32.55,-116.5],[32.54,-117.12],[32.68,-117.18],[32.8,-117.25],[32.95,-117.27],[33.1,-117.32],[33.2,-117.39],[33.35,-117.5],[33.5,-117.68],[33.6,-117.8],[33.72,-118.1],[33.74,-118.3],[33.77,-118.42],[33.85,-118.45],[33.95,-118.5],[34.02,-118.55],[34.05,-118.7],[34.05,-118.95],[34.1,-119.1],[34.22,-119.22],[34.3,-119.4],[34.38,-119.55],[34.42,-119.75],[34.45,-119.95],[34.45,-120.2],[34.44,-120.47],[34.5,-120.65],[34.65,-120.8],[34.8,-120.85],[34.95,-120.9],[35.1,-120.85],[35.25,-120.86],[35.38,-120.87],[35.5,-121],[35.65,-121.15],[35.8,-121.3],[35.95,-121.5],[36.1,-121.65],[36.25,-121.8],[36.4,-121.88],[36.55,-121.9],[36.62,-121.92],[36.8,-121.95],[36.95,-122.05],[36.98,-122.02],[37.1,-122.25],[37.2,-122.35],[37.35,-122.38],[37.5,-122.42],[37.6,-122.45],[37.7,-122.5],[37.78,-122.52],[37.83,-122.48],[37.85,-122.52],[37.9,-122.58],[37.95,-122.7],[38,-122.8],[38.05,-122.9],[38.1,-122.98],[38.15,-123],[38.3,-123.05],[38.5,-123.15],[38.65,-123.28],[38.8,-123.45],[38.95,-123.65],[39.05,-123.7],[39.2,-123.75],[39.4,-123.8],[39.6,-123.78],[39.8,-123.82],[40,-124.05],[40.2,-124.2],[40.44,-124.4],[40.6,-124.35],[40.8,-124.18],[41,-124.12],[41.2,-124.15],[41.4,-124.15],[41.6,-124.18],[41.78,-124.2],[42,-124.28],[42.15,-124.35],[42.3,-124.35],[42.5,-124.38],[42.75,-124.42],[43,-124.4],[43.2,-124.35],[43.4,-124.33],[43.6,-124.25],[43.8,-124.15],[44,-124.12],[44.2,-124.1],[44.4,-124.08],[44.65,-124.06],[44.85,-124.05],[45,-124],[45.2,-123.98],[45.4,-123.96],[45.6,-123.95],[45.8,-123.98],[46,-124],[46.15,-124.02],[46.27,-124.05],[46.4,-124.06],[46.55,-124.08],[46.7,-124.1],[46.85,-124.12],[47,-124.18],[47.15,-124.25],[47.3,-124.32],[47.45,-124.4],[47.6,-124.5],[47.75,-124.58],[47.9,-124.62],[48.1,-124.68],[48.25,-124.7],[48.38,-124.72],[48.4,-124.65],[48.5,-124.55],[48.6,-124.5],[48.7,-124.45],[48.8,-124.5],[48.9,-124.55],[49,-124.71]];
+const STATE_BORDERS="M93.15 77.83L96.41 79.25L100.27 81.74L104.45 83.19L108.69 84.43L111.63 84.85L115.06 88.92L117.27 91.97L117.25 97.47L119.54 100.31L125.83 99.86L130.01 101.44L133.09 101.39L135.85 102.57L140.25 103.3L144.56 104.43L150.09 106.73L154.25 108.45L161.3 110.86L165.52 112.33L170.25 111.73L176.36 111.66L180.93 111.64L184.06 111.27L188.62 111.23L193.12 110.07M64.17 164.02L97.39 173.76L127.63 181.9M127.63 181.9L150.42 187.59L172.99 192.85M172.99 192.85L177.68 172.02L181.42 155.37L184.14 151.61L191.44 146.69L193.83 142.85L193.72 136.29L193.17 131.82L193.08 125.27L193.27 120.97L192.71 113.24L193.12 110.07M127.63 181.9L122.29 202.61L116.94 223.35L113.35 237.24L113.48 244.58L116.88 256.5L124.7 269.49L131.87 282.25L139.52 295.05L145.83 307.49L153.44 320.15L160.86 326.14L167.89 334.19L174.16 346.4L180.08 351.96L182.58 358.99M182.58 358.99L184.83 363.79L182.31 367.66L178.91 371.35L176.37 375.21L174.68 379.23L173.85 383.42L173.88 387.78L173.05 391.97L169.35 395.16L168.43 399.76M198.47 307.54L194.43 328.58L183 337.26M218.68 202.38L214.64 223.38L210.6 244.41L206.56 265.44L202.52 286.49L198.47 307.54M172.99 192.85L188.6 196.27L203.93 199.47L218.68 202.38M198.47 307.54L232.17 313.64L265.33 318.91L281.11 321.18M281.11 321.18L278.18 342.4L275.25 363.61L272.32 384.8L269.4 405.97L266.48 427.12L264.52 441.26M261.42 231.61L277.12 234.03L292.84 236.29M292.84 236.29L289.91 257.49L286.98 278.72L284.05 299.95L281.11 321.18M218.68 202.38L234.69 205.36L250.11 208.07L264.79 210.49M273.2 157.83L272.79 155.61L270.5 150.93L268.22 146.25L261.54 140.82L254.91 135.37L251.26 130.41L249.09 125.71L246.94 121.01L243.36 116.04L239.81 111.06L237.72 106.36L235.65 101.65L233.6 96.95L228.73 91.67L223.89 86.39L217.68 80.79L215.74 76.07L214.51 71.51L213.3 66.94L213.24 60.48L218.91 50.97M264.79 210.49L268.16 189.39L271.52 168.34L273.2 157.83M274.88 147.33L290.43 149.72L304.53 151.74M386.14 75.87L384.36 96.8L382.58 117.81L380.79 138.9M380.79 138.9L380.68 140.16L378.99 160.04M378.99 160.04L377.19 181.24M377.19 181.24L375.39 202.49L373.58 223.77L371.77 245.08M292.84 236.29L309.38 238.48L325.15 240.4L340.94 242.15L356.74 243.73L371.77 245.08M371.77 245.08L380.48 245.8L388.4 246.4L403.46 247.44M403.46 247.44L402.1 268.8L400.73 290.18L399.37 311.57M281.11 321.18L298.59 323.49L315.25 325.52L331.94 327.37L348.64 329.04L365.36 330.54L382.1 331.87M292.84 236.29L289.91 257.49L286.98 278.72L284.05 299.95L281.11 321.18M382.1 331.87L381.31 342.55L380.52 353.23L378.94 374.59L377.37 395.93L375.8 417.24L374.23 438.52L373.88 443.2M382.1 331.87L381.31 342.55M380.68 140.16L396.15 141.39L410.89 142.4L425.65 143.25L440.41 143.95L455.17 144.5L469.95 144.89L484.72 145.12L491.22 145.17M482.16 80.56L483.94 84.78L486.73 89L487.4 93.21L488.08 97.42L488.76 101.64L489.45 105.85L490.13 110.07L490.83 114.29L490.8 118.51L490.78 122.74L491.48 126.97L491.45 131.2L491.43 135.43L491.4 139.66L491.38 143.9L491.22 145.17M491.22 145.17L491.33 152.38L491.29 158.75L491.26 165.12L491.22 171.5L491.18 177.89L491.91 184.28L491.87 190.67L491.84 197.06M375.37 202.7L391.53 203.98L406.93 205.04L422.35 205.93L437.77 206.66L453.19 207.23L460.91 207.45L463.92 210.52L470.09 211.72L476.26 212.9L482.45 214.05L485.54 215.15L490.17 218.39L491.72 218.83M491.84 197.06L491.83 199.19L491.5 203.46L491.78 207.73L491.75 213.06L491.72 218.83M402.1 268.8L418.98 269.79L435.08 270.55L451.18 271.14L467.28 271.57L483.39 271.82L499.5 271.91L510.62 271.87M510.62 271.87L507.54 269.74L504.32 267.61L501.91 265.48L502.7 261.2L504.29 257.98L501.89 254.77L502.68 250.92M491.72 218.83L493.26 222.68L494.81 225.89L496.37 229.1L497.93 232.31L499.5 235.52L501.08 238.73L501.87 241.94L501.08 245.15L501.88 248.35L502.68 250.92M521.73 271.74L521.89 282.45L522.04 293.17L522.2 303.88L522.35 314.59L522.44 320.59M398.01 332.96L415.6 333.98L432.37 334.78L449.15 335.4L465.93 335.84L482.71 336.1L499.5 336.19L516.29 336.1L522.67 336.02M381.31 342.55L398.17 343.71L415.04 344.68L431.92 345.48M431.92 345.48L431.56 354.04L431.02 366.88L436.03 370.3L439.34 373.64L442.63 378.04L445.93 382.44L450.99 386.88L456.07 391.3L461.18 395.7L466.32 400.09L471.52 402.33L476.74 404.55L481.99 404.61L487.25 403.59L492.5 404.69L497.75 405.77L503.01 406.84L508.27 406.82L513.52 406.78L518.8 407.8L525.83 408.77M522.67 336.02L522.73 340.31L522.82 346.74M525.69 346.69L525.76 350.98L525.87 357.4L525.96 362.76L526.04 368.11L526.13 373.46L526.22 378.81L526.29 383.09L526.36 387.37L526.43 391.65L527.37 395.91L527.48 402.33L525.83 408.77M533.73 408.63L534.69 412.88L537.43 417.1L538.41 421.35L539.4 425.6L538.66 432.02L538.81 438.42L538.9 442.68L540.8 446.9L542.75 453.25L543.82 459.62L543.93 463.87L544.04 468.13L543.29 474.53L541.62 480.95L539.91 486.31L539.1 491M525.83 408.77L533.73 408.63M491.84 197.06L499.5 197.08L507.16 197.06L514.82 197L522.48 196.9L530.14 196.76L537.8 196.58L545.46 196.36L553.12 196.09L560.78 195.79L568.43 195.45L572.26 195.26M554.83 123.77L555 128L555.17 132.22L555.34 136.45L556.98 140.63L555.67 144.92L554.36 149.22L553.04 153.52L550.22 157.87L548.88 162.17L548.2 164.32L549.85 168.51L552.26 172.68L554.68 176.85L558.63 180.95L563.37 185.01L566.6 189.13L569.86 193.25L572.26 195.26M572.26 195.26L574 199.45L574.99 203.67L575.98 207.89L578.53 212.03L582.64 216.08M582.64 216.08L585.21 220.22L587.02 224.39L588.84 228.57L588.31 232.88L586.99 237.24L584.87 241.65L582.74 246.06L579 250.54L577.64 254.9L576.15 257.12L573.97 261.52L573.37 265.83L572.67 268.01M571.36 257.36L569.82 258.5L566.72 260.78L563.56 261.99L558.72 261.12L553.88 260.23L547.49 260.44L539.46 259.6L531.47 259.79L523.46 258.87L515.48 258.97L509.1 261.17L507.54 269.74M571.36 257.36L573.17 261.56L574.18 265.8L575.19 270.03L577.02 274.23L578.85 278.43L580.69 282.62L583.36 286.77L585.98 289.85L588.67 293.99L592.95 296.96L594.71 298.99L596.49 301.03L595.04 304.34L596.13 308.57L599.7 312.64L602.32 314.62L605.92 318.68L607.8 321.77L608.09 326.05L609.07 328.13L614.39 332.05L614.7 336.32L615.01 340.6M615.01 340.6L616.01 342.67M596.62 343.97L592.4 344.22L583.96 344.68L575.52 345.11L567.08 345.48L558.64 345.82L550.19 346.11L541.74 346.35L532.45 346.57M522.82 346.74L528.23 346.65L532.45 346.57L541.74 346.35L550.19 346.11L558.64 345.82L567.08 345.48L575.52 345.11L583.96 344.68L592.4 344.22L596.62 343.97L599.28 345.95L601.1 347.98L602.93 350.01L605.61 351.98L606.6 354.07M533.99 421.44L543.71 421.22L552.55 420.96L561.39 420.66L570.23 420.31L579.07 419.91L585.25 419.61M606.6 354.07L606.03 358.4L605.46 362.73L604.03 367.11L601.73 371.55L601.14 375.87L601.4 380.15L599.94 384.53L599.33 388.85L598.72 393.17L597.24 397.55L595.74 401.92L594.24 406.29L590.96 410.75L587.67 415.2L585.25 419.61M606.6 354.07L599.81 354.5L593.02 354.91L584.52 355.38L576.03 355.8L567.53 356.19L559.03 356.52L550.53 356.81L542.03 357.06L532.67 357.28M585.25 419.61L586.35 423.83L588.46 430.13L588.8 436.52L589.02 440.78L589.25 445.04L589.47 449.3L589.69 453.56L590.14 462.06L599.2 461.56L608.25 461.01L612.77 460.72M554.83 123.77L575.33 125.34L579.92 128.89L583.83 132.9L589.23 136.81L599.81 140.34L606.02 144.13L610.79 148.01L618.54 151.64L623.18 153.37L626.53 157.34M582.64 216.08L588.07 215.77L592.73 215.48L600.48 214.97L608.24 214.42L615.99 213.83L623.74 213.19L626.84 212.93M631.17 212.55L632.13 223.19L632.92 233.85L633.87 244.5L634.83 255.16L635.78 265.83L636.73 276.5L636.36 285.13L636.11 291.61L635.85 298.09L634.77 304.63L634.31 308.98L631.37 313.53L631.91 319.94L633.1 324.14L632.53 327.41M632.53 327.41L628.45 328.82L625.27 331.23L620.28 332.04L616.98 332.93L614.7 336.32M632.58 228.3L640.72 227.55L648.54 226.78L656.36 225.98L664.17 225.13L671.97 224.25L674.94 223.9M674.94 223.9L675.59 229.42L676.85 240.04L678.11 250.67L679.36 261.31L680.62 271.94L681.63 280.45M681.63 280.45L680.3 281.69L679.05 285.07L676.97 288.55L671.74 293.45L668.82 297L664.36 301.79L659.65 304.44L656.57 306.9L653.38 308.3L650.29 310.75L647.08 312.13L643.74 312.01L639.45 310.68L635.23 309.97L632.84 311.25M675.01 224.54L681.41 223.76L687.65 222.99M741.37 212.57L742.59 219.96L744.32 230.51L745.54 237.91M745.54 237.91L744.8 241.28L743.9 245.77L743.79 250.12L742.89 254.61L742.77 258.97L741.04 263.58L739.14 267.13L737.39 271.74L736.26 275.17L733.52 278.84L731.57 282.39L728.8 286.05L726.82 289.59L723.87 292.19M723.87 292.19L721.12 290.42L715.63 286.87L707.35 286.92L702.61 288.63L695.55 291.7L689.83 292.41L686.18 289.62L684.35 281.21L681.63 280.45M723.87 292.19L728.58 295.84L730.53 297.71L731.66 299.71L732.8 301.71M732.8 301.71L736.72 305.45L740.67 309.19L744.96 315.03L746.28 318.07L740.96 322.15L734.93 327.39L726.58 328.61L716.55 330.01L706.85 331.31M706.85 331.31L701.49 331.99L693.12 333.03L684.74 334.03L676.35 334.98L667.96 335.89L659.57 336.76L651.17 337.58L642.77 338.35L634.36 339.08L633.7 341.29L626.12 341.91L616.01 342.67M706.85 331.31L713.12 329.83L718.08 328.72L723.09 328.02L728.16 327.73L733.2 327.21L736.6 327.14L740.77 326.51M740.77 326.51L738.43 327.95L735.4 330.57L732.52 334.24L729.62 337.91L726.56 340.51L723.49 343.11L720.41 345.7L718.17 348.17L715.92 350.63L712.81 353.21L709.69 355.78L707.42 358.23L705.27 361.74L702.97 364.19L700.33 366.67M700.33 366.67L692.12 367.67L683.56 368.66M683.56 368.66L674.99 369.6L666.42 370.51L657.84 371.36L649.26 372.17L640.68 372.94L633.8 373.52M633.8 373.52L628.65 373.93L620.06 374.59L611.46 375.2L602.86 375.77L597.7 376.08M683.56 368.66L684.38 372.87L685.38 377.07L686.73 381.22L688.08 385.37L689.43 389.52L690.27 393.73L691.28 397.92L692.65 402.06L693.14 406.31L693.63 410.55L694.13 414.79L694.62 419.03L695.11 423.27L695.6 427.51L696.1 431.75L695.7 436.09L695.54 442.54L696.27 448.89L698.56 452.91M698.56 452.91L689.55 453.94L680.53 454.91L671.51 455.84L662.49 456.72L653.46 457.56L654.41 468.15L655.7 472.31M633.8 373.52L634.68 384.18L635.56 394.84L636.44 405.49L637.31 416.14L635.52 426.99L636.38 437.63L637.24 448.25L639 458.79L641.33 465.01L643.89 473.76M698.56 452.91L707.56 451.84L716.56 450.73L725.97 452.73L735.41 454.67L744.73 455.51L749.98 453.68L753.43 452.1L758.67 450.23L762.37 450.32L764.13 449.83M700.33 366.67L709.23 365.55L717.77 364.43L721.02 363.99M721.02 363.99L720.05 368.44L722.35 372.44L726.37 376.21L732.13 379.72L736.19 383.46L740.42 388.25L744.67 393.02L747.75 395.81L752.75 399.37L756.73 402L763.3 409.62L766.4 417.77L769.46 419.87M721.02 363.99L729.72 362.77L738.25 361.54L746.78 360.26L756.83 357.61L763.46 355.46L768.55 354.62L774.01 355.87L783.05 357.57L792.13 359.21L801.42 361.86L809.04 364.77L811.56 368.65L793.64 377.41L787.49 382.85L793.42 386.14M836.93 309.97L829.83 311.48L821.56 313.19L813.28 314.87L805 316.49L796.7 318.08L788.4 319.62L780.09 321.12L771.77 322.57L763.45 323.98L755.11 325.35L746.77 326.67L740.43 327.65M793.34 249.56L789.38 252.94L785 255.95L777.79 261.65L771.34 267.17L768.02 269.93L765.21 274.77L762.7 279.55L760.18 284.33L754.72 291.76L753.44 294.14L749.86 297.98L744.45 301.01L738.37 305.2L737.05 307.57L737.18 314.05L735.65 320.79L740.27 326.59M793.34 249.56L798.92 251.08L808.88 251.26L814.3 253.42L818.14 255.9L822.44 260.47L820.79 268.48L817.27 275.79L820.19 281.75L827.57 284.58L828.9 290.86L828.67 301.87M793.34 249.56L780.95 251.92L772.99 253.38L765.35 254.74L757.06 256.17L748.77 257.56M765.35 254.74L771.67 255.14L785 255.95L793.34 249.56M823.92 243.28L828.72 247.06L830.88 253.17L839.12 260.12L841.56 267.26M823.92 243.28L820.6 243.99L812.68 245.66L804.76 247.29L796.83 248.87L793.34 249.56M833.33 205.23L832.54 208.92L830.39 213.79L829.77 218.32L830.39 222.56L832.42 226.5L835.4 230.22L838.22 233.97L834.44 239.21L829.13 242.15L823.92 243.28M740.85 209.41L748.89 208.07L752.59 207.43L764.31 205.36L779.71 202.49L795.07 199.47L810.4 196.27L820.2 194.15L823.29 196.53L827.11 199.18L831.12 202.66L833.33 205.23M823.92 243.28L827.12 239.74L829.21 239.5M833.33 205.23L842.29 208.87L845.24 211.04L846.14 213.46L847.34 216.48M829.21 239.5L830.17 242.36L831.09 246.54L830.43 251.07L831.34 255.26M848.55 202.99L852.59 204.23L856.18 205.56L859.67 206.47L871.99 203.38L879.68 201.4M848.48 186.52L854.41 185.07L863.52 182.8L874.13 180.08M835.71 124.68L836.77 129.02L838.78 137.29L840.79 145.57L842.8 153.85L844.31 160.07L844.57 164.39L846.38 170.54L848.34 176.66L848.48 186.52M862.59 117.88L862.27 122.58L861.89 127.07L861.51 131.57L861.11 136.07L860.71 140.58L860.29 145.08L859.87 149.59L859.44 154.1L859.75 158.43L860.05 162.75L860.72 168.53M860.72 168.53L855.46 169.85L848.24 171.63M860.72 168.53L867.47 166.8L876.47 164.45L880.96 163.26L884.37 159.24M884.29 154.84L879.85 153.17L877.26 149.45L877.63 144.93L876.52 140.81L875.42 136.7L873.58 132.78L872.1 124.37L870.7 120.34L868.38 116.34L867.34 112.44M874.13 180.08L866.56 182.04L858.97 183.95L859.23 184.98L856.08 185.32L848.48 186.52M880.66 179.04L881.31 181.51L882.02 184.2L882.68 186.68L877.37 192.5M874.3 180.71L875.48 185.26L876.29 188.36L877.37 192.5";
 
 /* ============================================================
    ENGINE
@@ -450,9 +491,35 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let rng=Math.random;
 const $=id=>document.getElementById(id);
 const fmtM=v=>"$"+(v>=1000?(v/1000).toFixed(1)+"B":v>=10?Math.round(v)+"M":Math.max(0,v).toFixed(1)+"M");
-const proj=(lat,lon)=>[ (lon+126)*(940/60)+15, (50-lat)*(560/26)+10 ];
+const proj=(lat,lon)=>{const R=Math.PI/180,phi=lat*R,lam=lon*R,n=0.602837004629,C=1.351221325418,rho0=1.303262426988,lam0=-1.675516081915,q=C-2*n*Math.sin(phi);if(q<0)return[490,300];const rho=Math.sqrt(q)/n,theta=n*(lam-lam0),x=rho*Math.sin(theta),y=rho0-rho*Math.cos(theta);return[(x+0.007812326401)*1216.025574+490,-(y-0.020950322633)*1216.025574+300];};
 
 let S=null; // game state
+
+/* ---------- sound system ---------- */
+let soundOn=true;
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null;
+function getAudio(){if(!audioCtx)try{audioCtx=new AudioCtx()}catch(e){soundOn=false}return audioCtx}
+function playTone(f,d,t,v){if(!soundOn)return;const c=getAudio();if(!c)return;try{const o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||0.06;g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}}
+function sfxGood(){playTone(523,.1);setTimeout(()=>playTone(659,.12),90)}
+function sfxBad(){playTone(330,.18,'triangle');setTimeout(()=>playTone(262,.25,'triangle'),120)}
+function sfxClick(){playTone(880,.03,'sine',.03)}
+function sfxAdvance(){playTone(440,.07);setTimeout(()=>playTone(554,.07),70);setTimeout(()=>playTone(659,.1),140)}
+function sfxEnd(){playTone(523,.15,.08);setTimeout(()=>playTone(659,.15,null,.07),150);setTimeout(()=>playTone(784,.3,null,.08),300)}
+
+/* ---------- undo system ---------- */
+let undoStack=[];
+function saveUndo(){try{undoStack.push(JSON.stringify(S));if(undoStack.length>20)undoStack.shift()}catch(e){}}
+function doUndo(){if(!undoStack.length){toast("Nothing to undo.");return}try{S=JSON.parse(undoStack.pop());renderAll();toast("Rewound.");sfxClick()}catch(e){toast("Undo failed.")}}
+
+/* ---------- auto-advance ---------- */
+let autoAdvance=false,autoTimer=null;
+function toggleAuto(){
+  autoAdvance=!autoAdvance;
+  const b=$("autoBtn");if(b)b.classList.toggle("on",autoAdvance);
+  if(autoAdvance){autoTimer=setInterval(()=>{if(!S||S.over||S.queue.length||$("shade").style.display==="flex")return;advance()},2200);toast("Auto-advance ON.")}
+  else{clearInterval(autoTimer);toast("Auto-advance OFF.")}
+}
 
 function newState(playerConf,era){
   era=era||2005;
@@ -474,7 +541,9 @@ function newState(playerConf,era){
   const st={year:era, startYear:era, endYear:era+30, player:playerConf, ap:2, schools, confs, news:[], log:[],
     queue:[], ranks:[], over:false, aiBlock:0, slStarted:false, brandStart:0, titles:0, evtCd:{},
     champs:{}, ledger:[], daily:null, startRank:1, expels:0, slLost:0, slFormed:false, g5Natty:false,
-    fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false};
+    fcsUsed:[], lastFcs:-99, moves:[], fcsCrop:null, slCase:0, slBusted:false, slBirth:0, restored:false,
+    slDiscovery:false, slHearings:false, slCoalition:false, slRaidSlow:1, empirePrestige:0, empireRivals:0,
+    slYear:era+22};
   // opening TV deals (older conferences locked into older money)
   if(era===2005){
     const opening={b1g:[1.00,2007],sec:[1.05,2009],b12:[0.95,2011],acc:[0.90,2010],pac:[0.80,2011],be:[0.70,2008],
@@ -595,6 +664,8 @@ function acceptChance(st,school,toId,opt){
   if(isG5(from)&&!isG5(toId))p+=22;          // everyone wants the call-up
   if(isG5(from)&&isG5(toId))p+=8;            // lateral G5 moves are easier too
   if(school.grudge===toId)p-=40;             // you expelled them once. they remember.
+  p-=(CONF_LOYALTY[from]||0);               // some conferences just hold tighter
+  if(VOLATILE.has(school.abbr)&&school.mood<45)p+=10;  // volatile + unhappy = itchy feet
   if(school.gorUntil&&school.gorUntil>st.year)p-=28;   // grant of rights is a fortress
   if(st.confs[from]&&st.confs[from].wounded>st.year)p+=15;   // nobody wants to be last off a sinking ship
   if(opt.sweeten)p+=15;
@@ -639,6 +710,7 @@ function moveSchool(st,school,toId,why){
       `The ${fromName} loses ${school.name} to the <b>${toName}</b>. "We wish them well," says a statement that wishes them nothing.`]);
   news(st,line+feeNote, toId===st.player?"good":"poach");
   log(st,`${school.abbr} → ${toName}`);
+  if(toId===st.player)sfxGood();else if(fromId===st.player)sfxBad();
   if(fromId!=="g5") checkCollapse(st,fromId);
 }
 
@@ -866,16 +938,24 @@ function seasonMoods(st){
   const cts={};
   for(const id of ALLC.concat(["g5"]))if(!st.confs[id].dead)cts[id]=centroid(st,id);
   for(const s of st.schools){
-    if(s.conf==="sl")continue;
+    if(s.conf==="sl"){
+      let d=rng()*4-5;
+      if(st.slCase>=1)d-=2;
+      if(st.slCase>=2)d-=3;
+      if(VOLATILE.has(s.abbr))d*=1.6+(rng()*0.4);
+      s.mood=Math.max(5,Math.min(98, s.mood+(45-s.mood)*0.06+d ));
+      continue;
+    }
     const pay=payoutOf(st,s.conf);
-    const natAvg=isG5(s.conf)?g5Avg:p5Avg;   // schools judge you against their tier
+    const natAvg=isG5(s.conf)?g5Avg:p5Avg;
     const expect=Math.max(isG5(s.conf)?0.5:3,natAvg*(s.brand/75));
     let d=Math.max(-12,Math.min(12,(pay/expect-1)*25));
     const c=st.confs[s.conf];
     if(c&&c.tv.expires-st.year>3)d+=1.5;
-    if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));  // travel weariness
-    if(s.gorUntil&&s.gorUntil>st.year)d-=1;                                     // GOR resentment drip
+    if(cts[s.conf])d-=Math.min(4,Math.max(0,(distMi(s,cts[s.conf])-600)/150));
+    if(s.gorUntil&&s.gorUntil>st.year)d-=1;
     d+=(rng()*6-3);
+    if(VOLATILE.has(s.abbr))d*=1.6+(rng()*0.4);
     s.mood=Math.max(5,Math.min(98, s.mood+(50-s.mood)*0.08+d ));
   }
 }
@@ -931,10 +1011,12 @@ function seasonStories(st){
   for(const s of st.schools){
     let dr=rng()*2-1;
     if(s.conf!=="sl"){
-      const rich=payoutOf(st,s.conf)/topPay;          // TV money buys recruiting, facilities, exposure
+      const rich=payoutOf(st,s.conf)/topPay;
       dr+=(rich-0.4)*0.9;
-    } else dr+=0.5;
+    } else dr+=0.25;
     if(s.devUntil&&s.devUntil>st.year)dr+=2;
+    if(s.brand>=88)dr-=(s.brand-85)*0.12;
+    if(s.brand>=94)dr-=0.5+rng()*0.5;
     s.brand=Math.max(35,Math.min(99,s.brand+dr));
   }
   // ---- a dilemma lands on your desk ----
@@ -979,7 +1061,47 @@ function runFlavor(st){
      news(st,`\u{1F6F0} ${insider()}: the ${st.confs[cid].name} has "done its homework" on <b>${t.name}</b>. Nothing imminent. Sources stress: nothing imminent.`,"event");}],
    [4,()=>{news(st,st.year<2014?`\u270D\uFE0F Column of the week: "The BCS is fine, actually." The comment section is a war zone.`
      :st.year<2024?`\u270D\uFE0F Column of the week: "Just expand the Playoff and nobody gets hurt."`
-     :`\u270D\uFE0F Column of the week: "Does the transfer portal need a portal?" Nobody knows anymore.`,"event");}]
+     :`\u270D\uFE0F Column of the week: "Does the transfer portal need a portal?" Nobody knows anymore.`,"event");}],
+   [8,()=>{
+     const pairs=RIVALRIES.filter(r=>{const a=byAbbr(st,r[0]),b=byAbbr(st,r[1]);return a&&b&&a.conf===b.conf&&a.conf!=="g5"&&a.conf!=="sl";});
+     const rv=pick(pairs);if(!rv)return;
+     const a=byAbbr(st,rv[0]),b=byAbbr(st,rv[1]);
+     a.brand=Math.min(99,a.brand+2);b.brand=Math.min(99,b.brand+2);
+     news(st,`\u{1F525} <b>${a.name}\u2013${b.name}</b> delivers an all-time classic. ${rv[2]} lives. Ratings through the roof${a.conf===st.player?" \u2014 your league's showcase":"."}`,(a.conf===st.player?"good":"event"));}],
+   [6,()=>{
+     const pairs=RIVALRIES.filter(r=>{const a=byAbbr(st,r[0]),b=byAbbr(st,r[1]);return a&&b&&a.conf!==b.conf&&a.conf!=="sl"&&b.conf!=="sl";});
+     const rv=pick(pairs);if(!rv)return;
+     const a=byAbbr(st,rv[0]),b=byAbbr(st,rv[1]);
+     news(st,`\u{1F494} ${a.name} and ${b.name} haven't played in years. Realignment killed ${rv[2]}. The fans mourn annually.`,"event");}],
+   [5,()=>{if(st.year<2021)return;const t=pick(pool.filter(x=>x.brand>=55));if(!t)return;t.brand=Math.min(99,t.brand+3);
+     news(st,`\u{1F911} The NIL collective at <b>${t.name}</b> drops a $5M bag. Five-star recruits incoming.`,"money");}],
+   [5,()=>{if(st.year<2018)return;const t=pick(pool.filter(x=>x.brand>=50));if(!t)return;
+     news(st,`\u{1F504} Transfer portal chaos: <b>${t.name}</b> loses its entire secondary in 48 hours. The portal giveth, the portal taketh.`,"event");}],
+   [4,()=>{const t=pick(pool);if(!t)return;t.brand=Math.min(99,t.brand+3);
+     news(st,`\u{1F3C0} <b>${t.name}</b> goes on a March Madness run. Basketball lifts the whole athletic department.`,"event");}],
+   [3,()=>{const t=pick(pool);if(!t)return;t.mood=Math.min(98,t.mood+5);
+     news(st,`\u{1F4CA} <b>${t.name}</b> hits a sellout streak \u2014 50 straight home games. The culture is undeniable.`,"good");}],
+   [4,()=>{if(st.year<2012)return;const t=pick(pool.filter(x=>x.brand>=65));if(!t)return;
+     news(st,tmpl([`\u{1F4F1} ${t.name}'s game-winning play breaks the internet \u2014 200M views by Monday. The brand isn't built on Saturdays anymore.`,
+       `\u{1F4F1} A ${t.name} walk-on catches the game-winner. The clip trends globally. College football remains unscripted.`]),"event");}],
+   [3,()=>{const coaches=pool.filter(x=>x.brand>=60);if(coaches.length<3)return;
+     const a2=pick(coaches),b2=pick(coaches.filter(x=>x!==a2));if(!b2)return;
+     news(st,`\u{1F3A0} <b>Coaching carousel:</b> ${a2.name}'s coach leaves for ${b2.name}. ${a2.name} hires from the G5. Musical chairs season.`,"event");
+     a2.brand=Math.max(35,a2.brand-2);b2.brand=Math.min(99,b2.brand+2);}],
+   [4,()=>{const t=pick(pool.filter(x=>x.brand<55));if(!t)return;t.brand=Math.min(99,t.brand+6);t.mood=Math.min(98,t.mood+8);
+     news(st,tmpl([`\u{1F31F} <b>${t.name}</b> goes wire-to-wire undefeated. The Cinderella nobody saw coming.`,
+       `\u{1F31F} Nobody outside ${t.name}'s area code gave them a chance. They went unbeaten anyway.`]),"good");}],
+   [3,()=>{const t=pick(pool.filter(x=>x.brand>=70));if(!t)return;t.brand=Math.max(35,t.brand-5);t.mood-=6;
+     news(st,tmpl([`\u{1F6A8} Booster scandal at <b>${t.name}</b>. The bag man had a bag man. NCAA on line one.`,
+       `\u{1F6A8} A ${t.name} booster's group chat leaks. It's bad. The compliance office is on fire.`]),"poach");}],
+   [7,()=>{const vols=pool.filter(x=>VOLATILE.has(x.abbr));const t=pick(vols);if(!t)return;
+     if(rng()<0.5){t.mood=Math.max(5,t.mood-12);
+       news(st,tmpl([`\u{1F4A2} <b>${t.name}</b> boosters are furious. "We deserve better than this conference." The AD is on a very short leash.`,
+         `\u{1F4A2} <b>${t.name}</b>'s board meets behind closed doors. Sources say they're "exploring options." Translation: phones are ringing.`,
+         `\u{1F4A2} ${t.name}'s fanbase erupts. Open letters, fired coordinators, billboards on the highway. Mood: nuclear.`]),"poach");
+     }else{t.mood=Math.min(98,t.mood+10);t.brand=Math.min(99,t.brand+2);
+       news(st,tmpl([`\u{1F929} <b>${t.name}</b> is riding high — sellouts, five-stars signing, boosters writing checks. The drama? What drama?`,
+         `\u{1F929} ${t.name} goes on a heater. The fanbase goes from "burn it down" to "dynasty" in eight weeks flat.`]),"good");}}]
   ];
   const tot=acts.reduce((a,x)=>a+x[0],0);let r=rng()*tot;
   for(const wf of acts){r-=wf[0];if(r<0){wf[1]();return;}}
@@ -1080,14 +1202,104 @@ const CHOICE_EVENTS=[
       {label:"NOT OUR PROBLEM",kbd:`${t.abbr} −5 brand · −5 mood`,fn:()=>{
         t.brand=Math.max(35,t.brand-5);t.mood-=5;
         news(st,`✈️ ${t.name}'s coach takes the NFL job. The rebuild begins.`,"event");}}]};
+ }},
+ {id:"nil",cd:4,cond:st=>st.year>=2021&&members(st,st.player).some(s=>s.brand>=70),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=70));
+   return {title:`NIL arms race at ${t.name}`,sub:`${st.year} · boosters gone wild`,
+     body:`${t.name}'s boosters launched a $20M NIL collective. Smaller members demand the league regulate it before the sport eats itself.`,
+     opts:[
+      {label:"LET THE MONEY FLY",kbd:`${t.abbr} +5 brand · members under 60 brand −4 mood`,fn:()=>{
+        t.brand=Math.min(99,t.brand+5);
+        members(st,st.player).filter(s=>s.brand<60).forEach(s=>s.mood-=4);
+        news(st,`💸 NIL money floods your league. The haves feast. The have-nots seethe.`,"money");log(st,"Let NIL run wild");}},
+      {label:"CAP IT LEAGUE-WIDE",kbd:"small schools +3 mood · top brands −3 mood",fn:()=>{
+        members(st,st.player).forEach(m=>{m.mood+=m.brand>=70?-3:3;});
+        news(st,`📋 You impose NIL guardrails. The small schools exhale; the big brands call their lawyers.`,"event");}}]};
+ }},
+ {id:"intl",cd:8,cond:st=>st.year>=2012,make:st=>{
+   const loc=tmpl(["Dublin","London","Tokyo","Mexico City","Sydney"]);
+   return {title:`An overseas game in ${loc}`,sub:`${st.year} · going global`,
+     body:`A broadcaster wants to stage your marquee game in ${loc} — massive global exposure, but your home crowd loses a Saturday.`,
+     opts:[
+      {label:"PLAY ABROAD",kbd:"+4% media for 2 yrs · home team −5 mood",fn:()=>{
+        st.confs[st.player].pen.push({until:st.year+2,pct:-0.04});
+        const t=pick(members(st,st.player));if(t)t.mood-=5;
+        news(st,`✈️ Your conference goes global — kickoff in ${loc}. Alumni rage; networks drool.`,"money");log(st,`Played in ${loc}`);}},
+      {label:"KEEP IT STATESIDE",kbd:"no change",fn:()=>{
+        news(st,`🏟 You turn down the overseas game. "We don't export our Saturdays."`,"event");}}]};
+ }},
+ {id:"merger",cd:12,cond:st=>ALLC.some(id=>!st.confs[id].dead&&id!==st.player&&members(st,id).length<=8&&members(st,id).length>=6),make:st=>{
+   const weak=pick(ALLC.filter(id=>!st.confs[id].dead&&id!==st.player&&members(st,id).length<=8&&members(st,id).length>=6));
+   if(!weak)return null;
+   const wc=st.confs[weak],wm=members(st,weak);
+   return {title:`The ${wc.name} proposes a merger`,sub:`${st.year} · survival mode`,
+     body:`The ${wc.name} has ${wm.length} schools left and can't land a TV deal. They offer to fold into your league — all members absorbed.`,
+     opts:[
+      {label:"ABSORB THEM",kbd:`+${wm.length} schools · −3% revenue 2 yrs`,fn:()=>{
+        payCost(st,0.03,2);
+        for(const s of [...wm])moveSchool(st,s,st.player,"the merger saves them");
+        news(st,`🤝 <b>The ${wc.name} merges into your league.</b> ${wm.length} new schools, one new headache.`,"good");log(st,`Absorbed the ${wc.name}`);}},
+      {label:"LET THEM DIE",kbd:"their schools hit the open market",fn:()=>{
+        news(st,`❄️ You decline the merger. The ${wc.name} is on its own.`,"event");}}]};
+ }},
+ {id:"sched",cd:5,cond:st=>members(st,st.player).length>=12,make:st=>({
+   title:"Scheduling revolt",sub:`${st.year} · the ADs push back`,
+   body:`Your ADs want to drop a conference game to schedule marquee non-conference matchups. More exposure, less conference identity.`,
+   opts:[
+    {label:"FEWER CONFERENCE GAMES",kbd:"+3% media 3 yrs · every member −3 mood",fn:()=>{
+      st.confs[st.player].pen.push({until:st.year+3,pct:-0.03});
+      members(st,st.player).forEach(m=>m.mood-=3);
+      news(st,`📅 You cut a conference game. Networks love it; rivalries suffer.`,"money");}},
+    {label:"CONFERENCE GAMES FIRST",kbd:"members +4 mood",fn:()=>{
+      members(st,st.player).forEach(m=>m.mood+=4);
+      news(st,`📅 You protect the conference schedule. The round-robin lives.`,"good");}}]
+ })},
+ {id:"acad",cd:7,cond:st=>members(st,st.player).some(s=>!s.aau&&s.brand<65),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>!s.aau&&s.brand<65));
+   if(!t)return null;
+   return {title:`Academic scandal at ${t.name}`,sub:`${st.year} · accreditors at the door`,
+     body:`${t.name}'s academic standing is under review. Lose accreditation, lose the conference membership — automatically.`,
+     opts:[
+      {label:"INVEST IN ACADEMICS",kbd:`−2% revenue 2 yrs · ${t.abbr} saved · gains AAU status`,fn:()=>{
+        payCost(st,0.02,2);t.aau=true;t.mood=Math.min(98,t.mood+8);
+        news(st,`🎓 You fund an academic rescue at ${t.name}. They earn AAU status.`,"good");log(st,`Saved ${t.abbr}'s academics`);}},
+      {label:"LET THE CHIPS FALL",kbd:"40% survive · 60% expelled",fn:()=>{
+        if(rng()<0.4)news(st,`📚 ${t.name} passes its review. Crisis averted.`,"event");
+        else{playerExpel(st,t);news(st,`📚 ${t.name} loses accreditation. You had no choice.`,"poach");}}}]};
+ }},
+ {id:"stadium",cd:6,cond:st=>members(st,st.player).some(s=>s.brand>=60),make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=60));
+   return {title:`${t.name} wants a mega-stadium`,sub:`${st.year} · if you build it…`,
+     body:`${t.name} is planning a $500M stadium renovation and wants the conference to chip in 20%.`,
+     opts:[
+      {label:"CO-FUND THE PALACE",kbd:`−3% revenue 3 yrs · ${t.abbr} +8 brand +12 mood`,fn:()=>{
+        payCost(st,0.03,3);t.brand=Math.min(99,t.brand+8);t.mood=Math.min(98,t.mood+12);
+        news(st,`🏗 You co-fund ${t.name}'s mega-stadium. The renderings go viral.`,"good");log(st,`Co-funded ${t.abbr}'s stadium`);}},
+      {label:"THAT'S YOUR PROBLEM",kbd:`${t.abbr} −8 mood`,fn:()=>{
+        t.mood-=8;news(st,`🏟 You tell ${t.name} to fund its own palace. They build it anyway — and update their realignment shortlist.`,"event");}}]};
+ }},
+ {id:"portal",cd:4,cond:st=>st.year>=2018,make:st=>{
+   const t=pick(members(st,st.player).filter(s=>s.brand>=55));
+   if(!t)return null;
+   return {title:`Transfer portal exodus at ${t.name}`,sub:`${st.year} · the portal giveth, the portal taketh`,
+     body:`${t.name} just lost a dozen players to the portal after a coaching change. The AD is panicking.`,
+     opts:[
+      {label:"EMERGENCY LEAGUE SUPPORT",kbd:`−1% revenue 1 yr · ${t.abbr} +4 brand +6 mood`,fn:()=>{
+        payCost(st,0.01,1);t.brand=Math.min(99,t.brand+4);t.mood=Math.min(98,t.mood+6);
+        news(st,`🔄 The league steps in to stabilize ${t.name} through portal chaos.`,"good");}},
+      {label:"NATURAL SELECTION",kbd:`${t.abbr} −4 brand`,fn:()=>{
+        t.brand=Math.max(35,t.brand-4);
+        news(st,`🔄 ${t.name} bleeds talent to the portal. Rebuild mode.`,"event");}}]};
  }}
 ];
 function queueChoiceEvent(st){
   const elig=CHOICE_EVENTS.filter(e=>(st.evtCd[e.id]===undefined||st.evtCd[e.id]+e.cd<=st.year)&&e.cond(st));
   if(!elig.length)return;
   const e=pick(elig);
+  const spec=e.make(st);
+  if(!spec)return;
   st.evtCd[e.id]=st.year;
-  st.queue.push({type:"choice",spec:e.make(st)});
+  st.queue.push({type:"choice",spec});
 }
 
 function queueSecRaid(st,school,toId){
@@ -1127,25 +1339,49 @@ function yearEvents(st){
     }
   }
   if(y===2024)news(st,`🏆 The <b>12-team Playoff</b> arrives — and so does athlete revenue sharing. Bigger checks, bigger bills.`,"money");
-  if(y===2030&&!st.slStarted){st.slStarted=true;st.queue.push({type:"superLeague"});}
-  if(y>=2030&&st.slStarted)slPressure(st);
-  if(y>=2031&&st.slStarted)slRaid(st);
-  if(y>=2031&&st.slStarted)bustCheck(st);
-  if(y>=2031&&st.confs[st.player].slWin)queueEmpire(st);
+  if(y===st.slYear&&!st.slStarted){
+    st.slStarted=true;st.queue.push({type:"superLeague"});
+    if(st.endYear-y<10){st.endYear=y+10;news(st,`⏱ The board extends your tenure through ${st.endYear} — this fight needs a full decade.`,"good");}
+  }
+  if(y>=st.slYear&&st.slStarted)slPressure(st);
+  if(y>st.slYear&&st.slStarted)slRaid(st);
+  if(y>st.slYear&&st.slStarted)bustCheck(st);
+  if(y>st.slYear&&st.slStarted)slDefections(st);
+  if(y>st.slYear&&st.confs[st.player].slWin)queueEmpire(st);
 }
 function bustCheck(st){
   const sl=st.confs.sl;
   if(!sl||sl.dead||st.confs[st.player].slWin)return;
-  // co-plaintiffs pile on while the breakaway is stalling
-  if(rng()<0.35&&members(st,"sl").length<10){
-    st.slCase=(st.slCase||0)+0.5;
-    news(st,`⚖ ${insider()}: more leagues have quietly joined the antitrust suit against the Super League. The case grows teeth.`,"event");
+  if(rng()<0.3&&st.slCase<3){
+    st.slCase=(st.slCase||0)+0.4;
+    news(st,`⚖ ${insider()}: more leagues quietly join the antitrust suit. Case strength: ${st.slCase.toFixed(1)}/3.`,"event");
   }
-  if((st.slCase||0)>=3&&members(st,"sl").length<8&&st.year>=(st.slBirth||9999)+3){
+  if(st.slCase>=1&&!st.slDiscovery){
+    st.slDiscovery=true;
+    members(st,"sl").forEach(s=>s.mood=Math.max(5,s.mood-10));
+    news(st,`📋 <b>DISCOVERY PHASE.</b> The Super League's private emails are now public record. Side deals, threats, all of it. Their members are shaken.`,"event");
+    log(st,"Discovery phase: SL emails leaked");
+  }
+  if(st.slCase>=2&&!st.slHearings){
+    st.slHearings=true;
+    st.slRaidSlow=0.4;
+    members(st,"sl").forEach(s=>s.mood=Math.max(5,s.mood-8));
+    news(st,`🏛 <b>CONGRESSIONAL HEARINGS.</b> ${senName()} drags Super League executives in front of cameras. Their raids will slow to a crawl.`,"event");
+    log(st,"Congressional hearings: SL raids slowed");
+  }
+  if(st.slCase>=2){
+    for(const s of members(st,"sl")){
+      if(s.mood<42&&rng()<0.18){
+        moveSchool(st,s,"g5","jumped ship before the ruling");
+        news(st,`🚪 <b>${s.name} LEAVES the Super League!</b> The antitrust case is shaking them loose.`,"good");
+      }
+    }
+  }
+  if(st.slCase>=3&&st.year>=(st.slBirth||9999)+2){
     const scattered=members(st,"sl");
     sl.dead=true;sl.diedYr=st.year;st.slBusted=true;
     for(const s of scattered){s.conf="g5";s.mood=48;s.lastCourt=0;}
-    news(st,`⚖⚡ <b>THE SUPER LEAGUE IS DEAD.</b> The antitrust ruling lands, the investors flee, and ${scattered.length} blue-bloods hit the open market at once. The greatest free agency in the history of the sport starts NOW.`,"good");
+    news(st,`⚖⚡ <b>THE SUPER LEAGUE IS DEAD.</b> The antitrust ruling lands, the investors flee, and ${scattered.length} blue-bloods flood the open market. The greatest free agency in the sport starts NOW.`,"good");
     log(st,"Busted the Super League in court");
   }
 }
@@ -1167,26 +1403,104 @@ function playerRestore(st){
 function playerSueSL(st){
   spendAP(st,1);
   payCost(st,0.02,2);
-  st.slCase=(st.slCase||0)+1;
-  news(st,tmpl([`⚔️ Your lawyers file another four hundred pages against the Super League. ${senName()} promises hearings.`,
-    `⚔️ You bankroll the antitrust war. Their counsel bills by the hour; yours bills by the grudge.`,
-    `⚔️ Discovery time: the Super League's group chats are about to become public record.`]),"event");
-  log(st,`Funded the antitrust case (${Math.round(st.slCase*10)/10}/3)`);
+  const prev=st.slCase||0;
+  st.slCase=prev+1;
+  if(prev<1){
+    news(st,`⚔️ <b>THE CASE BEGINS.</b> Your lawyers file 400 pages. ${senName()} promises hearings. Discovery will open their emails to the world.`,"event");
+  }else if(prev<2){
+    news(st,`⚔️ <b>THE CASE BUILDS.</b> Another round of depositions. Their CFO's texts are on the congressional record now. Case: ${Math.round(st.slCase)}/3.`,"event");
+  }else{
+    news(st,`⚔️ <b>THE CASE IS AIRTIGHT.</b> The judge has seen enough. The Super League's lawyers are sending invoices with trembling hands. Case: ${Math.round(st.slCase)}/3.`,"event");
+  }
+  log(st,`Funded antitrust case (${Math.round(st.slCase)}/3)`);
+  if(rng()<0.45){
+    const myMem=members(st,st.player);
+    const target=pick(myMem.filter(s=>s.brand>=60));
+    if(target){
+      target.mood-=5;
+      news(st,`😤 The Super League leaks your internal finances in retaliation. <b>${target.name}</b>'s boosters ask pointed questions.`,"poach");
+    }
+  }
+  st.slRaidSlow=Math.max(0.3,1-st.slCase*0.2);
 }
 
-/* ---------- the endgame: what happens AFTER the throne ---------- */
-function slRaid(st){                       // the breakaway hunts, actively
+function playerRaidSL(st){
+  spendAP(st,2);
+  const slMem=members(st,"sl").filter(s=>s.mood<55).sort((a,b)=>a.mood-b.mood);
+  if(!slMem.length){toast("No unhappy SL members to target right now.");st.ap+=2;return;}
+  const tgt=slMem[0];
+  const chance=Math.min(75,30+(55-tgt.mood)*1.2+(st.slCase||0)*8);
+  if(rng()*100<chance){
+    moveSchool(st,tgt,st.player,"defected from the Super League");
+    tgt.mood=70;
+    news(st,`🎯 <b>${tgt.name} DEFECTS from the Super League</b> and joins the ${st.confs[st.player].name}! The empire cracks.`,"good");
+    log(st,`Recruited ${tgt.abbr} out of the SL`);
+  }else{
+    news(st,`😬 <b>${tgt.name}</b> listens to your pitch but can't break the Super League contract. Yet.`,"event");
+    tgt.mood-=3;
+    log(st,`Failed to recruit ${tgt.abbr} from SL`);
+  }
+}
+function playerCoalition(st){
+  spendAP(st,2);
+  payCost(st,0.03,2);
+  st.slCoalition=true;
+  st.slCase=(st.slCase||0)+0.5;
+  st.slRaidSlow=Math.max(0.3,(st.slRaidSlow||1)-0.2);
+  const allies=ALLC.filter(id=>id!==st.player&&!st.confs[id].dead&&!st.confs[id].slWin).length;
+  for(const id of ALLC){
+    if(id===st.player||st.confs[id].dead)continue;
+    members(st,id).forEach(s=>s.mood=Math.min(98,s.mood+4));
+  }
+  news(st,`🤝 <b>THE COALITION.</b> ${allies} conferences sign the mutual defense pact. Joint legal fund, shared scouting, a united front against the breakaway. The antitrust case picks up steam.`,"good");
+  log(st,"Formed the anti-Super League coalition");
+}
+function slDefections(st){
   if(!st.confs.sl||st.confs.sl.dead||st.confs[st.player].slWin)return;
-  const top=[...st.schools].filter(s=>s.conf!=="sl"&&s.conf!=="g5").sort((a,b)=>b.brand-a.brand).slice(0,6);
+  const slMem=members(st,"sl");
+  if(slMem.length<3)return;
+  for(const s of slMem){
+    if(s.mood<35&&rng()<0.12){
+      s.conf="g5";s.mood=40;s.lastCourt=0;
+      news(st,`🚪 <b>${s.name} quietly exits the Super League.</b> The empire shrinks.`,"event");
+      st.ledger.push({yr:st.year,ab:s.abbr,school:s.name,from:"Super League",to:"Independent",toId:"g5"});
+    }
+  }
+}
+/* ---------- the endgame: what happens AFTER the throne ---------- */
+function slRaid(st){
+  if(!st.confs.sl||st.confs.sl.dead||st.confs[st.player].slWin)return;
+  const slow=st.slRaidSlow||1;
+  if(rng()>slow)return;
+  const top=[...st.schools].filter(s=>s.conf!=="sl"&&s.conf!=="g5").sort((a,b)=>b.brand-a.brand).slice(0,8);
   const tgt=pick(top.filter(s=>!(s.conf===st.player&&(st.confs[st.player].fought>=st.year||st.confs[st.player].concordat))));
   if(!tgt)return;
   const a=acceptChance(st,tgt,"sl",{scripted:true});
-  if(tgt.conf===st.player)news(st,`⚠ The Super League is courting <b>${tgt.name}</b> with gold-bar money…`,"poach");
-  if(rng()*100<a.p)moveSchool(st,tgt,"sl","resistance was expensive");
-  else if(tgt.conf===st.player)news(st,`🛡 ${tgt.name} turns the Super League down. Loyalty still exists.`,"good");
+  if(tgt.conf===st.player){
+    if(rng()*100<a.p){
+      st.queue.push({type:"choice",spec:{
+        title:`The Super League wants ${tgt.name}`,sub:`${st.year} · active raid on your league`,
+        body:`<b>${tgt.name}</b> has a Super League term sheet on their desk. Brand ${Math.round(tgt.brand)}, mood ${Math.round(tgt.mood)}. They're listening.`,
+        opts:[
+          {label:"FIGHT FOR THEM",kbd:"−4% revenue 3 yrs · keep them · +10 mood",fn:()=>{
+            payCost(st,0.04,3);tgt.mood=Math.min(98,tgt.mood+10);
+            news(st,`🛡 You go to war for <b>${tgt.name}</b>. Matching the Super League's money hurts, but they stay.`,"good");log(st,`Fought to keep ${tgt.abbr}`);}},
+          {label:"LET THE MARKET DECIDE",kbd:`${Math.round(a.p)}% chance they leave`,fn:()=>{
+            if(rng()*100<a.p){moveSchool(st,tgt,"sl","the money was nuclear");
+              news(st,`💔 <b>${tgt.name} is gone.</b> The Super League's offer was generational.`,"poach");
+            }else{news(st,`🛡 <b>${tgt.name} stays!</b> Not every school has a price.`,"good");tgt.mood+=5;}}}
+        ]}});
+    } else {
+      news(st,`🛡 ${tgt.name} turns the Super League down cold.`,"good");
+    }
+  } else {
+    if(rng()*100<a.p)moveSchool(st,tgt,"sl","resistance was expensive");
+  }
 }
-function queueEmpire(st){                  // ruling is its own game
+function queueEmpire(st){
   const c=st.confs[st.player], mem=members(st,st.player);
+  st.empirePrestige=(st.empirePrestige||0)+1;
+  const yrsAsEmpire=st.year-(st.slBirth||st.year);
   if(mem.length>7&&(st.evtCd.invest===undefined||st.evtCd.invest+2<=st.year)&&rng()<0.65){
     st.evtCd.invest=st.year;
     const t=[...mem].sort((a,b)=>a.brand-b.brand)[0];
@@ -1207,19 +1521,114 @@ function queueEmpire(st){                  // ruling is its own game
   }
   const rivals=ALLC.filter(id=>!st.confs[id].dead&&id!==st.player);
   const second=Math.max(...rivals.map(id=>payoutOf(st,id)),1);
-  if(st.evtCd.trust===undefined&&payoutOf(st,st.player)>second*1.8){
+  if((st.evtCd.trust===undefined||st.evtCd.trust+4<=st.year)&&payoutOf(st,st.player)>second*1.5){
     st.evtCd.trust=st.year;
     st.queue.push({type:"choice",spec:{
       title:"Washington calls a hearing",sub:`${st.year} · the empire gets audited`,
       body:`Your league pays ${fmtM(payoutOf(st,st.player))}/school; nobody else clears ${fmtM(second)}. Congress smells a monopoly.`,
       opts:[
-        {label:"SETTLE — SHARE THE WEALTH",kbd:"−8% revenue for 3 yrs · the heat dies",fn:()=>{
-          c.pen.push({until:st.year+3,pct:0.08});
+        {label:"SETTLE — SHARE THE WEALTH",kbd:"−8% revenue for 3 yrs · the heat dies · +4 mood",fn:()=>{
+          c.pen.push({until:st.year+3,pct:0.08});mem.forEach(s=>s.mood=Math.min(98,s.mood+4));
           news(st,`🏛 You cut revenue-sharing checks to the little guys. The hearing ends politely.`,"event");log(st,"Settled with Congress");}},
-        {label:"FIGHT THE FEDS",kbd:"50% walk free · 50% −12% for 3 yrs",fn:()=>{
-          if(rng()<0.5){news(st,`🏛 Your lawyers shred the antitrust case. Untouchable.`,"good");log(st,"Beat the antitrust case");}
-          else{c.pen.push({until:st.year+3,pct:0.12});news(st,`🏛 The feds win. Forced revenue sharing, three years.`,"poach");log(st,"Lost the antitrust case");}}}
+        {label:"FIGHT THE FEDS",kbd:"50% walk free · 50% −12% for 3 yrs + members −6 mood",fn:()=>{
+          if(rng()<0.5){news(st,`🏛 Your lawyers shred the antitrust case. Untouchable.`,"good");log(st,"Beat the antitrust case");st.empirePrestige+=2;}
+          else{c.pen.push({until:st.year+3,pct:0.12});mem.forEach(s=>s.mood=Math.max(5,s.mood-6));news(st,`🏛 The feds win. Forced revenue sharing, three years. The members grumble.`,"poach");log(st,"Lost the antitrust case");}}}
       ]}});
+  }
+  if(rng()<0.5&&mem.length>=8&&(st.evtCd.revolt===undefined||st.evtCd.revolt+2<=st.year)){
+    st.evtCd.revolt=st.year;
+    const unhappy=mem.filter(s=>s.mood<50);
+    if(unhappy.length>=2){
+      st.queue.push({type:"choice",spec:{
+        title:"Member revolt brewing",sub:`${st.year} · the empire frays`,
+        body:`${unhappy.length} of your schools are openly unhappy. ${unhappy.map(s=>'<b>'+s.abbr+'</b>').join(', ')} — boosters are meeting without you.`,
+        opts:[
+          {label:"EMERGENCY REVENUE SHARE",kbd:"+12 mood all unhappy · −5% rev for 2 yrs",fn:()=>{
+            c.pen.push({until:st.year+2,pct:0.05});unhappy.forEach(s=>s.mood=Math.min(98,s.mood+12));
+            news(st,`💸 You open the vault to calm the rebels. Expensive, but the empire holds.`,"money");log(st,"Paid off unhappy members");}},
+          {label:"LET THEM TALK",kbd:"Risky — unhappy schools may leave",fn:()=>{
+            unhappy.forEach(s=>{if(rng()<0.35){moveSchool(st,s,"g5","had enough of empire life");s.mood=25;}});
+            news(st,`🚪 You called their bluff. Some of them weren't bluffing.`,"poach");log(st,"Ignored the member revolt");}}
+        ]}});
+    }
+  }
+  if(rng()<0.4&&(st.evtCd.intlSL===undefined||st.evtCd.intlSL+3<=st.year)){
+    st.evtCd.intlSL=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"International expansion offer",sub:`${st.year} · the empire goes global`,
+      body:`A European broadcast consortium wants exclusive Super League content. Massive money, but your members would play games at 9 AM local time.`,
+      opts:[
+        {label:"SIGN THE DEAL",kbd:"+12% media rev · all members −6 mood",fn:()=>{
+          c.tv.rate*=1.12;mem.forEach(s=>s.mood=Math.max(5,s.mood-6));st.empirePrestige+=2;
+          news(st,`🌍 The Super League goes global. London games, Tokyo games, 9 AM kickoffs in Tuscaloosa.`,"money");log(st,"Signed international deal");}},
+        {label:"STAY DOMESTIC",kbd:"Members +4 mood · no revenue change",fn:()=>{
+          mem.forEach(s=>s.mood=Math.min(98,s.mood+4));
+          news(st,`🏠 You keep Saturday where it belongs. The fanbase exhales.`,"good");log(st,"Rejected international expansion");}}
+      ]}});
+  }
+  if(rng()<0.45&&(st.evtCd.streaming===undefined||st.evtCd.streaming+3<=st.year)){
+    st.evtCd.streaming=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"The streaming wars want you",sub:`${st.year} · platform bidding war`,
+      body:`Two streaming giants are bidding for your league's exclusive digital rights. The money is obscene, but traditional TV fans can't watch.`,
+      opts:[
+        {label:"GO EXCLUSIVE STREAMING",kbd:"+18% media rev · −10 mood all (fans revolt)",fn:()=>{
+          c.tv.rate*=1.18;mem.forEach(s=>s.mood=Math.max(5,s.mood-10));st.empirePrestige+=1;
+          news(st,`📱 The Super League goes streaming-exclusive. Grandpa can't find the game. The check clears anyway.`,"money");log(st,"Signed streaming-exclusive deal");}},
+        {label:"HYBRID DEAL",kbd:"+6% media rev · members +3 mood",fn:()=>{
+          c.tv.rate*=1.06;mem.forEach(s=>s.mood=Math.min(98,s.mood+3));
+          news(st,`📺 You split the baby: streaming and traditional. Everyone gets something, nobody gets everything.`,"event");log(st,"Signed hybrid streaming deal");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=2&&rng()<0.35&&(st.evtCd.coalRival===undefined||st.evtCd.coalRival+3<=st.year)){
+    st.evtCd.coalRival=st.year;
+    const numRivals=rivals.filter(id=>members(st,id).length>=6).length;
+    st.empireRivals=(st.empireRivals||0)+1;
+    st.queue.push({type:"choice",spec:{
+      title:"A rival coalition forms",sub:`${st.year} · the rest of the sport pushes back`,
+      body:`${numRivals} conferences announce a mutual-aid pact, pooling legal resources and scheduling against you. Their combined brand power is growing.`,
+      opts:[
+        {label:"POACH THEIR BEST",kbd:"Raid the coalition · top school 60% joins you · others −8 mood",fn:()=>{
+          const pool=st.schools.filter(s=>s.conf!==st.player&&s.conf!=="g5"&&s.conf!=="sl").sort((a,b)=>b.brand-a.brand);
+          const t=pool[0];
+          if(t&&rng()<0.6){moveSchool(st,t,st.player,"empire called");news(st,`👑 <b>${t.name}</b> abandons the coalition and joins your empire. Money talks.`,"good");log(st,`Poached ${t.abbr} from the coalition`);}
+          else{mem.forEach(s=>s.mood=Math.max(5,s.mood-4));news(st,`😤 The coalition holds firm. Your aggression backfires — your own members are nervous.`,"poach");}
+          rivals.forEach(id=>{members(st,id).forEach(s=>s.mood=Math.max(5,s.mood-8));});}},
+        {label:"IGNORE THEM",kbd:"Coalition grows stronger · +3 mood your members",fn:()=>{
+          mem.forEach(s=>s.mood=Math.min(98,s.mood+3));
+          news(st,`🤷 You let the little leagues play their games. Your members appreciate the confidence.`,"event");log(st,"Ignored rival coalition");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=3&&rng()<0.3&&(st.evtCd.fanRevolt===undefined||st.evtCd.fanRevolt+4<=st.year)){
+    st.evtCd.fanRevolt=st.year;
+    st.queue.push({type:"choice",spec:{
+      title:"Fan attendance is cratering",sub:`${st.year} · the stadiums are half-empty`,
+      body:`Cross-country travel, 9 PM kickoffs, streaming-only games — the students stopped coming. Stadium revenue is down 20%. The product on the field is elite, but the stands tell a different story.`,
+      opts:[
+        {label:"REGIONAL SCHEDULING BLOCK",kbd:"+8 mood all · −4% revenue 2 yrs",fn:()=>{
+          c.pen.push({until:st.year+2,pct:0.04});mem.forEach(s=>s.mood=Math.min(98,s.mood+8));
+          news(st,`🏟 You carve out a regional scheduling block: bus-trip rivalries return. Attendance rebounds.`,"good");log(st,"Added regional scheduling block");}},
+        {label:"DOUBLE DOWN ON TV",kbd:"+8% media · −12 mood all",fn:()=>{
+          c.tv.rate*=1.08;mem.forEach(s=>s.mood=Math.max(5,s.mood-12));
+          news(st,`📺 You tell the fans to buy a streaming subscription. The check is bigger. The stadiums echo.`,"money");log(st,"Ignored fan attendance crisis");}}
+      ]}});
+  }
+  if(yrsAsEmpire>=2&&rng()<0.25&&(st.evtCd.nilCrisis===undefined||st.evtCd.nilCrisis+3<=st.year)){
+    st.evtCd.nilCrisis=st.year;
+    const bigName=pick(mem.filter(s=>s.brand>=75));
+    if(bigName){
+      st.queue.push({type:"choice",spec:{
+        title:"NIL arms race out of control",sub:`${st.year} · the players want more`,
+        body:`<b>${bigName.name}</b>'s star quarterback demands $12M or he transfers. Every school in your league is bidding against itself. The players have leverage — and they know it.`,
+        opts:[
+          {label:"CAP NIL SPENDING",kbd:"−6 mood all · +4% league savings 2 yrs",fn:()=>{
+            mem.forEach(s=>s.mood=Math.max(5,s.mood-6));c.pen.push({until:st.year+2,pct:-0.04});
+            news(st,`💼 You impose an NIL salary cap. The players' union files a grievance. The accountants breathe.`,"event");log(st,"Capped NIL spending");}},
+          {label:"LET THE MARKET DECIDE",kbd:"Top brands −3 each · members −4 mood",fn:()=>{
+            mem.filter(s=>s.brand>=70).forEach(s=>{s.brand=Math.max(50,s.brand-3);});mem.forEach(s=>s.mood=Math.max(5,s.mood-4));
+            news(st,`💸 The NIL market goes nuclear. Your richest programs are spending like NFL franchises — and it's not sustainable.`,"money");log(st,"Let NIL market run wild");}}
+        ]}});
+    }
   }
 }
 
@@ -1227,19 +1636,35 @@ function top16(st){return [...st.schools].sort((a,b)=>b.brand-a.brand).slice(0,1
 
 function slPressure(st){
   if(!st.confs.sl||st.confs.sl.dead){return;}
+  const slow=st.slRaidSlow||1;
   for(const s of top16(st)){
     if(s.conf==="sl")continue;
     const c=st.confs[s.conf];
     if(s.conf===st.player&&(c.fought>=st.year||c.concordat))continue;
     if(c&&c.slWin)continue;
-    if(s.mood<52&&rng()<0.22){
-      moveSchool(st,s,"sl","the breakaway comes calling");
+    const chance=0.22*slow;
+    if(s.mood<52&&rng()<chance){
+      if(s.conf===st.player){
+        st.queue.push({type:"choice",spec:{
+          title:`${s.name} has a Super League offer`,sub:`${st.year} · defend or lose them`,
+          body:`<b>${s.name}</b> (brand ${Math.round(s.brand)}, mood ${Math.round(s.mood)}) got the call. The Super League is offering generational money. You can counter — but it'll cost you.`,
+          opts:[
+            {label:"COUNTER-OFFER",kbd:"−3% revenue 2 yrs · keep them · +12 mood",fn:()=>{
+              payCost(st,0.03,2);s.mood=Math.min(98,s.mood+12);
+              news(st,`🛡 You open the vault and counter the Super League's offer to <b>${s.name}</b>. They stay. For now.`,"good");log(st,`Counter-offered to keep ${s.abbr}`);}},
+            {label:"LET THEM GO",kbd:`${s.name} joins the Super League`,fn:()=>{
+              moveSchool(st,s,"sl","the money was too loud");
+              news(st,`💔 <b>${s.name}</b> leaves for the Super League. The pitch was generational; the loyalty was seasonal.`,"poach");}}
+          ]}});
+      } else {
+        moveSchool(st,s,"sl","the breakaway comes calling");
+      }
     }
   }
 }
 
 /* ---------- player actions ---------- */
-function spendAP(st,n){st.ap-=n;}
+function spendAP(st,n){saveUndo();st.ap-=n;}
 // costs come out of the war chest first; only unfunded costs dent revenue
 function payCost(st,pct,years){
   const c=st.confs[st.player];
@@ -1328,7 +1753,6 @@ function playerCcg(st){
   log(st,`Launched the championship game`);
 }
 function cropRefresh(st){
-  if(!isG5(st.player))return;
   const avail=FCS_POOL.filter(r=>!st.fcsUsed.includes(r[0]));
   if(!avail.length){st.fcsCrop=null;return;}
   if(st.fcsCrop&&st.year-st.fcsCrop.yr<3&&st.fcsCrop.list.some(e=>!st.fcsUsed.includes(e.abbr)))return;
@@ -1347,7 +1771,7 @@ function cropRefresh(st){
   }
 }
 function playerPromote(st,row,brandOverride){
-  spendAP(st,2);
+  spendAP(st,isG5(st.player)?2:3);
   const s={id:st.schools.length,abbr:row[0],name:row[1],lat:row[2],lon:row[3],brand:brandOverride||row[4],market:row[5],
     conf:st.player,orig:st.player,aau:false,mood:88,ind:false,lastCourt:st.year,color:row[6]};
   st.schools.push(s);
@@ -1380,6 +1804,7 @@ function playerDeal(st,len,mod,stab){
 function advance(){
   if(!S)return;
   if(S.over){endScreen();return;}
+  saveUndo();sfxAdvance();
   const c=S.confs[S.player];
   if(S.year>=c.tv.expires){ tvModal(true); return; }  // must sign before season runs
   runSeason();
@@ -1406,7 +1831,7 @@ function runSeason(){
     if(S.over==="dead"){renderAll();endScreen();return;}
     if(S.year>=S.endYear){renderAll();endScreen();return;}
     renderAll();
-    toast(`Season complete — welcome to ${S.year}.`);
+    toast(`Season complete — welcome to ${S.year}. ${S.ap} actions.`);
     animateMoves(S.moves);
     });
   });
@@ -1442,17 +1867,19 @@ function finalScore(){
   const maxPay=Math.max(...alive.map(id=>payoutOf(S,id)),1);
   const myPay=payoutOf(S,S.player);
   const brandRatio=Math.min(1.4,confBrand(S,S.player)/Math.max(1,S.brandStart));
-  const climbPts=Math.max(0,Math.min(18,(S.startRank-avgRank)*5));   // underdogs get graded on the climb
+  const climbPts=Math.max(0,Math.min(18,(S.startRank-avgRank)*5));
   const rankPts=40*(1-(avgRank-1)/Math.max(1,alive.length-1));
   const payPts=28*(myPay/maxPay);
   const brandPts=14*(brandRatio/1.4);
   const titlePts=Math.min(8,S.titles*2);
   const slPts=c.slWin?8:0;
-  const bustPts=S.slBusted?6:0;
-  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts));
+  const bustPts=S.slBusted?8:(!S.slStarted?0:Math.min(6,Math.round(S.slCase*2)));
+  const coalPts=S.slCoalition?2:0;
+  const defenderPts=(S.slFormed&&!c.slWin&&S.slLost===0&&!S.slBusted)?3:0;
+  const score=Math.round(Math.min(100,rankPts+payPts+brandPts+climbPts+titlePts+slPts+bustPts+coalPts+defenderPts));
   const grade=letterOf(score);
   const soul=soulScore();
-  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,soul,soulGrade:letterOf(soul)};
+  return {grade,score,avgRank,myPay,dead:false,slWin:c.slWin,rankPts,payPts,brandPts,climbPts,titlePts,slPts,bustPts,coalPts,defenderPts,soul,soulGrade:letterOf(soul)};
 }
 
 /* ============================================================
@@ -1461,16 +1888,14 @@ function finalScore(){
 const SVGNS="http://www.w3.org/2000/svg";
 function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 
-function eraName(y){return y<1992?"THE OLD WORLD":y<1998?"THE GREAT SHUFFLE":y<2014?"BCS ERA":y<2024?"PLAYOFF ERA":y<2030?"12-TEAM ERA":"SUPER LEAGUE ERA";}
+function eraName(y){if(S&&S.slStarted&&y>=S.slYear)return"SUPER LEAGUE ERA";return y<1992?"THE OLD WORLD":y<1998?"THE GREAT SHUFFLE":y<2014?"BCS ERA":y<2024?"PLAYOFF ERA":"EXPANSION ERA";}
 const confHex=cid=>S.confs[cid]?S.confs[cid].hex:"#7b8fa8";
 
 function buildMapBase(){
   const svg=$("map");svg.innerHTML="";
   const d="M"+OUTLINE.map(p=>proj(p[0],p[1]).map(v=>v.toFixed(1)).join(",")).join(" L")+" Z";
   svg.appendChild(el("path",{d,fill:"#0d1a2e",stroke:"#24466e",["stroke-width"]:1.4,["stroke-linejoin"]:"round"}));
-  // faint grid
-  for(let x=100;x<980;x+=110)svg.appendChild(el("line",{x1:x,y1:0,x2:x,y2:600,stroke:"#12233c",["stroke-width"]:0.6}));
-  for(let y=80;y<600;y+=100)svg.appendChild(el("line",{x1:0,y1:y,x2:980,y2:y,stroke:"#12233c",["stroke-width"]:0.6}));
+  svg.appendChild(el("path",{d:STATE_BORDERS,fill:"none",stroke:"#1a3352",["stroke-width"]:0.5,["stroke-linejoin"]:"round",opacity:0.7}));
   const h=el("g",{id:"hulls"});svg.appendChild(h);
   const g=el("g",{id:"dots"});svg.appendChild(g);
 }
@@ -1530,7 +1955,7 @@ function drawDots(){
         <div class="row"><span>Mood</span><span style="color:${s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)"}">${Math.round(s.mood)}</span></div>`;
     });
     c.addEventListener("mouseleave",()=>tip.style.display="none");
-    c.addEventListener("click",()=>{ if(dragMoved||S.over)return; if(s.conf===S.player)memberModal(s); else if(s.conf!=="sl")courtModal(s); });
+    c.addEventListener("click",()=>{ if(dragMoved||S.over)return; if(s.conf===S.player)memberModal(s); else if(s.conf==="sl")slSchoolModal(s); else courtModal(s); });
     g.appendChild(c);
     if(!ghost){
       const t=el("text",{x,y:y-r-4,fill:"#9db4d6","font-size":9,"font-weight":700,"text-anchor":"middle"});
@@ -1656,7 +2081,9 @@ function renderOffice(){
   const exitSub=document.querySelector("#uiExit + .s")||$("uiExit").parentElement.querySelector(".s");
   if(exitSub)exitSub.textContent=(c.chest||0)>=1?("war chest: "+fmtM(c.chest)):"per defector";
   const left=Math.max(0,c.tv.expires-S.year);
-  $("uiTvYears").textContent=left<=0?"EXPIRED — renegotiate":("expires "+c.tv.expires);
+  const tvLabel=$("uiTvYears");
+  tvLabel.textContent=left<=0?"EXPIRED — renegotiate":("expires "+c.tv.expires);
+  tvLabel.className=left<=1?"kbd expiring":"kbd";
   $("uiTvBar").style.width=Math.min(100,(left/Math.max(1,c.tv.len))*100)+"%";
   $("uiTvBar").style.background=left<=1?"var(--red)":left<=2?"var(--gold)":"var(--teal)";
   const fp=footprintInfo(footprintOf(members(S,S.player)));
@@ -1707,19 +2134,21 @@ function renderStandings(){
 function renderActions(){
   const b=$("actionsBody");b.innerHTML="";
   const c=S.confs[S.player];
-  const fcsReady=isG5(S.player)&&S.fcsUsed.length<FCS_POOL.length;
+  const fcsReady=S.fcsUsed.length<FCS_POOL.length;
   const mem=members(S,S.player);
   const avgMood=mem.length?mem.reduce((a,s)=>a+s.mood,0)/mem.length:0;
   const gorActive=c.gorLabel&&c.gorLabel>S.year;
   const acts=[
     {ic:"🎯",tt:"Court a school",td:"Pitch an outsider on joining you",ap:1,ok:canAct(S,1),fn:targetPicker},
-    {ic:"⛏",tt:"Promote an FCS program",td:!isG5(S.player)?"G5 leagues only — the powers don't shop in the FCS, they shop in the G5":(fcsReady?"See this year's crop of 5 scouted risers · one call-up per offseason":"The FCS well is dry"),ap:2,ok:isG5(S.player)&&canAct(S,2)&&fcsReady&&S.year-S.lastFcs>=1,fn:fcsPicker},
+    {ic:"⛏",tt:"Promote an FCS program",td:fcsReady?(isG5(S.player)?"See this year's crop of 5 scouted risers · one call-up per offseason":"Pluck from the FCS — costs more for a power conference"):"The FCS well is dry",ap:isG5(S.player)?2:3,ok:canAct(S,isG5(S.player)?2:3)&&fcsReady&&S.year-S.lastFcs>=1,fn:fcsPicker},
     {ic:"🏗",tt:"Invest in a program",td:"Grow a member's brand +2/yr for 3 yrs (−2% rev, 2 yrs)",ap:1,ok:canAct(S,1),fn:investPicker},
     {ic:"🤝",tt:"Retention package",td:"Shore up a restless member",ap:1,ok:canAct(S,1),fn:retainPicker},
     {ic:"🔒",tt:"Grant of Rights",td:gorActive?"Locked through "+c.gorLabel:avgMood>=60?"Lock everyone's rights for 8 yrs (needs happy league)":"Needs avg mood 60+ (now "+Math.round(avgMood)+")",ap:1,ok:canAct(S,1)&&!gorActive&&avgMood>=60,fn:()=>{playerGor(S);renderAll();}},
     {ic:"🏟",tt:"Title game",td:c.ccg?"Playing every December":mem.length>=8?"Permanent +4% media revenue":"Needs 8+ members",ap:1,ok:canAct(S,1)&&!c.ccg&&mem.length>=8,fn:()=>{playerCcg(S);renderAll();}},
     ...((S.confs.sl&&!S.confs.sl.dead&&!c.slWin&&!c.concordat)?[
-      {ic:"⚔️",tt:"Fund the antitrust war",td:"Case "+((S.slCase||0).toFixed(1))+"/3 — busts them if they're still under 8 members",ap:1,ok:canAct(S,1),fn:()=>{playerSueSL(S);renderAll();}},
+      {ic:"⚔️",tt:"Fund the antitrust war",td:"Case "+((S.slCase||0).toFixed(1))+"/3"+(S.slDiscovery?" · DISCOVERY":"")+(S.slHearings?" · HEARINGS":"")+" — hits 3 and they're done",ap:1,ok:canAct(S,1),fn:()=>{playerSueSL(S);renderAll();}},
+      {ic:"🎯",tt:"Raid the Super League",td:members(S,"sl").filter(s=>s.mood<55).length?"Recruit an unhappy SL member ("+members(S,"sl").filter(s=>s.mood<55).length+" unhappy)":"No unhappy SL members to target",ap:2,ok:canAct(S,2)&&members(S,"sl").filter(s=>s.mood<55).length>0,fn:()=>{playerRaidSL(S);renderAll();}},
+      ...(!S.slCoalition?[{ic:"🛡",tt:"Form the Coalition",td:"Unite all conferences against the SL — joint defense, shared legal fund, slows raids",ap:2,ok:canAct(S,2),fn:()=>{playerCoalition(S);renderAll();}}]:[]),
       {ic:"🤝",tt:"Sign the Concordat",td:"Become their partner: +18% media forever, immunity — and a leash",ap:2,ok:canAct(S,2),fn:()=>{playerConcordat(S);renderAll();}}
     ]:[]),
     ...((!S.restored&&!c.concordat&&!c.slWin&&(S.slBusted||(!S.slFormed&&S.year>=2033)))?[(()=>{
@@ -1729,13 +2158,28 @@ function renderActions(){
       const ready=am>=65&&fp2.mult>=1;
       return {ic:"🎓",tt:"Lead the Restoration",td:ready?"Sign the Scholarship Charter — give the sport back":"Needs a REGIONAL/NATIONAL footprint and 65+ avg mood (now "+Math.round(am)+", "+fp2.label+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerRestore(S);renderAll();}};
     })()]:[]),
-    ...((S.year>=2030&&!S.confs.sl&&!c.slWin)?[(()=>{
+    ...((S.year>=S.slYear&&!S.confs.sl&&!c.slWin)?[(()=>{
       const mine=top16(S).filter(s=>s.conf===S.player).length;
       const aliveR=ALLC.filter(id=>!S.confs[id].dead).sort((a,b)=>payoutOf(S,b)-payoutOf(S,a));
       const rk=aliveR.indexOf(S.player)+1;
       const ready=mine>=5&&rk===1;
       return {ic:"👑",tt:"Form the Super League",td:ready?"Declare the breakaway — you ARE the future (+30% media forever)":"Needs 5+ of the top-16 brands (have "+mine+") and the #1 payout (now #"+rk+")",ap:2,ok:canAct(S,2)&&ready,fn:()=>{playerFormSL(S);renderAll();}};
     })()]:[]),
+    ...(c.slWin?[
+      {ic:"👑",tt:"Absorb a rival's star",td:"Poach the top brand from a rival conference",ap:2,ok:canAct(S,2),fn:()=>{
+        const pool=S.schools.filter(s=>s.conf!==S.player&&s.conf!=="g5"&&s.conf!=="sl"&&!S.confs[s.conf].dead).sort((a,b)=>b.brand-a.brand);
+        const t=pool[0];if(!t){toast("No targets available.");return;}
+        spendAP(S,2);
+        if(rng()<0.55){moveSchool(S,t,S.player,"the empire called");news(S,`👑 <b>${t.name} joins your empire.</b> The rest of the sport takes notes.`,"good");log(S,`Absorbed ${t.abbr} into the empire`);S.empirePrestige++;}
+        else{news(S,`😤 <b>${t.name}</b> rejects the empire's invitation. Not everyone bows.`,"event");log(S,`${t.abbr} rejected the empire`);}
+        renderAll();}},
+      {ic:"💪",tt:"Empire showcase",td:"Host a marquee event: +3 brand to top 5 members, +prestige",ap:1,ok:canAct(S,1),fn:()=>{
+        spendAP(S,1);payCost(S,0.02,1);
+        const top5=members(S,S.player).sort((a,b)=>b.brand-a.brand).slice(0,5);
+        top5.forEach(s=>{s.brand=Math.min(99,s.brand+3);});S.empirePrestige+=2;
+        news(S,`🏟 <b>The Empire Showcase.</b> Prime time, every network. Your top programs shine. Brand power rises.`,"good");
+        log(S,"Hosted the Empire Showcase");renderAll();}}
+    ]:[]),
     {ic:"⚖️",tt:"Raise exit fee",td:"+$20M — deters poachers, annoys members",ap:1,ok:canAct(S,1),fn:()=>{playerExitFee(S);renderAll();}},
     {ic:"💸",tt:"Cut bonus checks",td:(c.chest||0)>=16?"Distribute the "+fmtM(c.chest)+" war chest — members +mood":"War chest too thin ("+fmtM(c.chest||0)+")",ap:1,ok:canAct(S,1)&&(c.chest||0)>=16,fn:()=>{playerBonus(S);renderAll();}},
     {ic:"📺",tt:"Launch conference network",td:c.network?"Already on the air":"Multiply your media rate (2007+)",ap:2,ok:canAct(S,2)&&!c.network&&S.year>=2007,fn:()=>{playerNetwork(S);renderAll();}},
@@ -1760,6 +2204,7 @@ function renderNews(){
 function renderAll(){
   S.schools.forEach(s=>{s.mood=Math.max(2,Math.min(98,s.mood));});  // event hits can briefly overshoot
   renderTop();renderOffice();renderMembers();renderStandings();renderActions();renderNews();drawDots();drawLegend();autosave();
+  const ub=$("undoBtn");if(ub)ub.disabled=!undoStack.length;
 }
 
 /* ---------- defection animation ---------- */
@@ -1826,6 +2271,38 @@ function targetPicker(){
       courtModal(s);
     });
   });
+}
+function slSchoolModal(s){
+  if(!S||S.over)return;
+  const mc=s.mood>60?"var(--green)":s.mood>40?"var(--gold)":"var(--red)";
+  const canRaid=!S.confs[S.player].slWin&&!S.confs[S.player].concordat&&s.mood<55&&canAct(S,2);
+  const chance=canRaid?Math.min(75,30+(55-s.mood)*1.2+(S.slCase||0)*8):0;
+  showModal(`<h2 style="color:var(--gold)">Super League · ${s.name}</h2>
+    <div class="sub">Brand ${Math.round(s.brand)} · Market ${s.market}</div>
+    <div class="mrow"><span>Mood</span><span style="color:${mc};font-weight:700">${Math.round(s.mood)}</span></div>
+    <div class="mrow"><span>Status</span><span style="color:var(--gold)">Super League member</span></div>
+    ${s.mood<55?`<div class="mrow"><span>Unhappy?</span><span style="color:var(--red)">YES — vulnerable to recruitment</span></div>`:`<div class="mrow"><span>Satisfied</span><span style="color:var(--green)">Content in the SL for now</span></div>`}
+    ${canRaid?`<div class="mrow"><span>Est. defection chance</span><span style="color:${chance>=40?"var(--green)":"var(--gold)"}"><b>${Math.round(chance)}%</b></span></div>`:""}
+    <div class="btnRow">
+      ${canRaid?`<button class="btn-cta" id="raidSL">RECRUIT THEM — 2 AP</button>`:""}
+      <button class="btn-ghost" onclick="hideModal()">Close</button></div>`);
+  if(canRaid){
+    $("raidSL").addEventListener("click",()=>{
+      spendAP(S,2);
+      if(rng()*100<chance){
+        moveSchool(S,s,S.player,"defected from the Super League");s.mood=70;
+        news(S,`🎯 <b>${s.name} DEFECTS from the Super League</b> and joins the ${S.confs[S.player].name}!`,"good");
+        log(S,`Recruited ${s.abbr} out of the SL`);
+        toast(`${s.name} is IN. Welcome home.`);
+      }else{
+        s.mood-=3;
+        news(S,`😬 ${s.name} listens but stays in the Super League. For now.`,"event");
+        log(S,`Failed to recruit ${s.abbr} from SL`);
+        toast(`${s.name} said no. The contract is too tight.`);
+      }
+      hideModal();renderAll();
+    });
+  }
 }
 function courtModal(s){
   if(!canAct(S,1)){toast("No actions left this offseason.");return;}
@@ -2007,21 +2484,27 @@ function superLeagueModal(done){
   if(mine>=5){
     S.confs[S.player].slWin=true;
     showModal(`<h2>👑 You ARE the Super League</h2>
-      <div class="sub">2030 · the breakaway wants in with YOU</div>
+      <div class="sub">${S.year} · the breakaway wants in with YOU</div>
       <div class="body">You control <b>${mine} of the top 16 brands</b> in the sport. The breakaway organizers can't build it without you — so they build it around you. Media rate up 30%, permanently.</div>
       <div class="btnRow"><button class="btn-cta" id="slk">TAKE THE THRONE</button></div>`);
     $("slk").onclick=()=>{news(S,"👑 <b>Your league becomes the spine of the Super League.</b> Everyone else fights for scraps.","good");log(S,"Became the Super League");hideModal();done();};
   } else {
+    const slMem=top16(S).filter(s=>s.conf!==S.player).length;
     showModal(`<h2>⚡ The Super League Ultimatum</h2>
-      <div class="sub">2030 · a private-equity-backed breakaway targets the top 16 brands</div>
-      <div class="body">Sixteen blue-bloods are invited to a breakaway "Super League" — including <b>${mine}</b> of yours. Restless members will start defecting each season.</div>
+      <div class="sub">${S.year} · a private-equity-backed breakaway targets the top 16 brands</div>
+      <div class="body">Private equity is bankrolling a breakaway "Super League" — ${slMem} schools outside your league and <b>${mine} of yours</b> are on the invite list. They're offering 3x the money. Your members are listening.<br><br>
+      <b>If you fight:</b> You'll get protection for 3 years, then you'll need to fund the antitrust case (3 filings to bust them), raid their unhappy members, and build a coalition. It's a war — but it's winnable.<br><br>
+      <b>If you don't fight:</b> They'll pick your league apart year by year.</div>
       <div class="btnRow">
-        <button class="btn-cta" id="s1">FIGHT IT<br><span class="kbd">+8 mood all members · rivals frozen 2 yrs · your top brands protected 3 yrs</span></button>
-        <button class="btn-ghost" id="s2">LET HISTORY HAPPEN<br><span class="kbd">hold on tight</span></button>
+        <button class="btn-cta" id="s1">FIGHT IT<br><span class="kbd">+8 mood · 3 yr protection · unlocks antitrust case, coalition, SL raids</span></button>
+        <button class="btn-ghost" id="s2">LET HISTORY HAPPEN<br><span class="kbd">watch the blue-bloods leave, one by one</span></button>
       </div>`);
     $("s1").onclick=()=>{S.confs[S.player].fought=S.year+3;S.aiBlock=2;members(S,S.player).forEach(m=>m.mood+=8);
-      news(S,"✊ You organize the resistance. Lawsuits fly; the breakaway slows.","good");log(S,"Fought the Super League");hideModal();done();};
-    $("s2").onclick=()=>{news(S,"⚡ The Super League begins signing blue-bloods.","poach");log(S,"Let the Super League form");hideModal();done();};
+      S.slRaidSlow=0.7;
+      news(S,"✊ <b>You organize the resistance.</b> Lawsuits filed, coalition calls made, your brands are protected for three years. The antitrust war begins.","good");
+      news(S,"📋 <b>NEW ACTIONS UNLOCKED:</b> Fund the antitrust case (3 filings to bust the SL), Raid the Super League (poach unhappy members), Form the Coalition (slow their raids).","event");
+      log(S,"Fought the Super League");hideModal();done();};
+    $("s2").onclick=()=>{news(S,"⚡ The Super League begins signing blue-bloods. Your members start taking calls.","poach");log(S,"Let the Super League form");hideModal();done();};
   }
 }
 /* ---------- pick + end ---------- */
@@ -2035,6 +2518,8 @@ const ERA_OPENERS={
        `There is no script anymore. Whatever happens next, the sport is doing it to itself — starting with you.`]
 };
 function startGame(confId,daily,era){
+  undoStack=[];if(autoTimer)clearInterval(autoTimer);autoAdvance=false;
+  const ab=$("autoBtn");if(ab)ab.classList.remove("on");
   S=newState(confId,era);
   if(daily)S.daily=daily;
   const c=S.confs[S.player];
@@ -2057,7 +2542,9 @@ function showCoach(){
     ① Click any bubble — pitch outsiders, manage your own<br>
     ② Poach right before your TV deal expires, then re-sign rich<br>
     ③ Watch <b>The Wire</b> — rumors telegraph raids a year early<br>
-    ④ Drop under 6 schools and your league <b>dies</b>`;
+    ④ Drop under 6 schools and your league <b>dies</b><br>
+    <span style="margin-top:6px;display:block;color:var(--dim);font-size:10.5px">
+    <b>Keys:</b> Space = advance · Z = undo · M = mute · A = auto-play</span>`;
   $("mapPanel").appendChild(d);
   const dismiss=()=>{d.remove();try{localStorage.setItem("confwars_coach","1");}catch(e){}};
   d.querySelector("#coachX").addEventListener("click",dismiss);
@@ -2185,10 +2672,20 @@ function gameBadges(g){
   if(!g.dead&&g.soul>=84)b.push(["🏡","STUDENTS FIRST","regional, loyal, beloved — football the way it was supposed to work"]);
   if(!g.dead&&g.soul<=35&&(g.grade==="S"||g.grade[0]==="A"))b.push(["🕴","SOLD ITS SOUL","rich beyond measure; beloved by no one"]);
   if(S.slBusted)b.push(["⚔️","TRUST BUSTER","the Super League died in court — because of you"]);
+  if(S.slCoalition&&S.slBusted)b.push(["🛡","COALITION LEADER","united the sport and won"]);
+  if(S.slBusted&&S.slLost===0)b.push(["💪","UNTOUCHABLE","busted the SL without losing a single member"]);
   if(S.confs[S.player].concordat)b.push(["🤝","THE CONCORDAT","affiliated, protected, compromised"]);
   if(S.restored)b.push(["🎓","THE RESTORATION","regional Saturdays, scholarships first — the money went to the NFL"]);
+  if(S.confs[S.player].slWin&&(S.empirePrestige||0)>=8)b.push(["🌍","GLOBAL EMPIRE","your league transcended the sport"]);
   if(!g.dead&&S.confs.sl&&!S.confs.sl.dead&&!S.confs[S.player].slWin&&payoutOf(S,S.player)>payoutOf(S,"sl"))b.push(["🐐","OUT-EARNED THE EMPIRE","a mortal league beat the Super League's payout"]);
   if(!g.dead&&S.slFormed&&!S.confs[S.player].slWin&&g.soul>=88)b.push(["❤️","THE PEOPLE'S LEAGUE","America watches them on Tuesday. America loves you on Saturday."]);
+  const mem2=members(S,S.player);
+  if(!g.dead&&mem2.length>=20)b.push(["🏗","MEGA-CONFERENCE",mem2.length+" schools under one roof"]);
+  if(!g.dead&&mem2.length>0&&mem2.every(s=>s.mood>=65))b.push(["😊","EVERYBODY'S HAPPY","every member above 65 mood at the final whistle"]);
+  if(!g.dead&&S.ledger.filter(l=>l.toId===S.player).length>=15)b.push(["🧲","THE COLLECTOR","poached 15+ schools over the run"]);
+  const aauCount=mem2.filter(s=>s.aau).length;
+  if(!g.dead&&aauCount>=10)b.push(["🎓","BRAIN TRUST",aauCount+" AAU schools — an academic powerhouse"]);
+  if(!g.dead&&isG5(S.player)&&payoutOf(S,S.player)>payoutOf(S,"sec"))b.push(["💪","G5 DYNASTY","a mid-major league out-earning the SEC"]);
   return b;
 }
 function endChart(){
@@ -2209,7 +2706,7 @@ function endChart(){
     <polygon points="${P},${H-P} ${mine} ${X(y1).toFixed(1)},${H-P}" fill="${c.hex}" opacity="0.13"/>
     <polyline points="${led}" fill="none" stroke="#5b7294" stroke-width="1.6" stroke-dasharray="5 4"/>
     <polyline points="${mine}" fill="none" stroke="${c.hex}" stroke-width="2.6" stroke-linejoin="round"/>
-    <text x="${P+2}" y="15" fill="#8fa8c9" font-size="10.5">the thirty-year race — <tspan fill="${c.hex}" font-weight="700">your payout</tspan> vs <tspan fill="#7f97bb">the field's best</tspan></text>
+    <text x="${P+2}" y="15" fill="#8fa8c9" font-size="10.5">the ${S.year-S.startYear}-year race — <tspan fill="${c.hex}" font-weight="700">your payout</tspan> vs <tspan fill="#7f97bb">the field's best</tspan></text>
     <text x="${P+2}" y="${H-P+1}" fill="#5b7294" font-size="9">${y0}</text>
     <text x="${W-P-26}" y="${H-P+1}" fill="#5b7294" font-size="9">${y1}</text>
     <text x="${W-P-4}" y="30" fill="var(--gold)" font-size="11" font-weight="700" text-anchor="end">${fmtM(hist[hist.length-1].pay)}/school at the end</text>
@@ -2238,24 +2735,46 @@ function epilogueText(g){
       :g.grade[0]==="B"?`A tenure worth a statue. A modest statue, but bronze is bronze.`
       :g.grade[0]==="C"?`You survived the most predatory era the sport ever saw. That is not nothing.`
       :`The less said about the money, the better.`);
-    if(S.slBusted)p.push(`They built a Super League. You buried it in court filings.`);
+    if(S.slBusted){
+      p.push(`They built a Super League. You buried it in court filings.`);
+      if(S.slCoalition)p.push(`The coalition you assembled — every conference, one legal front — was the weapon that ended it.`);
+      const slRaided=S.ledger.filter(l=>l.from==="Super League"&&l.toId===S.player);
+      if(slRaided.length)p.push(`You didn't just beat them — you poached ${slRaided.length} of their schools on the way down.`);
+    } else if(S.slStarted&&S.slCase>=1&&!c.slWin){
+      const prog=S.slCase>=2?`Congressional hearings were underway. Emails were leaked. The Super League was cracking.`
+        :`The discovery phase was open — their secrets were on the table.`;
+      p.push(`The antitrust case was at <b>${S.slCase.toFixed(1)}/3</b> when your tenure ended. ${prog}`);
+      if(S.slCoalition)p.push(`The coalition held. Your successor inherits the weapon you built.`);
+    } else if(S.slFormed&&S.slLost>0&&!c.slWin){
+      p.push(`The Super League took ${S.slLost} of your schools. The wound never fully closed.`);
+    }
     if(S.restored)p.push(`Then you did the thing nobody believed possible: sent the money to the NFL and kept the Saturdays for the kids.`);
     if(S.confs[S.player].concordat)p.push(`The Concordat kept your league rich and whole. What it cost doesn't show up on the wire transfer.`);
+    if(S.confs[S.player].slWin){
+      const ep=S.empirePrestige||0;
+      if(ep>=8)p.push(`The empire went global. London, Tokyo, the streaming wars — you won them all.`);
+      else if(ep>=4)p.push(`The empire held. Not without scars, but the throne is still yours.`);
+      else p.push(`The empire survived, barely. The throne wobbles, but it stands.`);
+    }
     if(g.soul>=84)p.push(`And the miracle: you did it without selling the thing itself — bus rides, blood rivals, kids first. Somewhere, a 1975 athletic director nods.`);
     else if(g.soul<=35&&g.grade[0]<="B")p.push(`The money is generational. The soul is a line item.`);
   }
   return p.join(" ");
 }
 function endScreen(){
-  storClear();
+  storClear();sfxEnd();
   if(!S.over)S.over="done";
   const g=finalScore();
   const c=S.confs[S.player];
   const gc=g.grade==="S"?"var(--gold)":g.grade[0]==="A"?"var(--green)":g.grade[0]==="B"?"var(--teal)":g.grade[0]==="C"?"var(--gold)":"var(--red)";
   const headline=g.dead?`☠ <b>The ${c.name} is dead.</b> You presided over its funeral.`
     :S.restored?`🎓 <b>You gave the sport back.</b> Regional Saturdays, scholarships first — and the money went where money goes.`
+    :S.slBusted?`⚖ <b>You killed the Super League.</b> The courtroom, not the boardroom, decided the future of the sport.`
     :g.slWin?`👑 You didn't survive the realignment era — <b>you ended it.</b>`
+    :(S.slStarted&&S.slCase>=2&&!S.slBusted)?`⚖ <b>The case was building — but time ran out.</b> Congressional hearings, leaked emails, a coalition of the willing — another few years and the Super League was dead.`
+    :(S.slStarted&&S.slCase>=1&&!S.slBusted)?`⚖ <b>You took the fight to court.</b> The discovery phase shook them, but the gavel never fell.`
     :(S.slFormed&&S.slLost===0)?`🛡 The breakaway came for your best — <b>and your league didn't crack.</b>`
+    :(S.slFormed&&S.slLost>0)?`💔 The Super League took ${S.slLost} of yours. The ${c.name} survived — but the scars are permanent.`
     :`${members(S,S.player).length} schools · ${fmtM(payoutOf(S,S.player))}/school · ${S.titles} national title${S.titles===1?"":"s"}.`;
   const bd=gameBadges(g);
   const badgeRow=bd.length?`<div class="reveal" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;animation-delay:1.5s">${bd.map((x,i)=>`<span class="lg reveal" title="${x[2]}" style="font-size:11px;padding:5px 10px;animation-delay:${1.5+i*0.18}s">${x[0]} ${x[1]}</span>`).join("")}</div>`:"";
@@ -2265,7 +2784,7 @@ function endScreen(){
   const recap=Object.keys(chapters).sort().map(d=>
     `<div style="margin-top:7px"><b style="color:var(--teal);letter-spacing:1.5px;font-size:11px">THE ${d}s</b></div>`+
     chapters[d].map(l=>`<div><b>${l.yr}</b> — ${l.txt}</div>`).join("")
-  ).join("")||"<div>A quiet three decades. Suspiciously quiet.</div>";
+  ).join("")||`<div>A quiet ${S.year-S.startYear} years. Suspiciously quiet.</div>`;
   const share=`CONFERENCE WARS${S.daily?" DAILY "+S.daily:""} — I ran the ${c.name} from ${S.startYear}→${S.year}. Money: ${g.grade}${g.dead?" (league DIED)":" · Soul: "+g.soulGrade+" · "+fmtM(payoutOf(S,S.player))+"/school"}${S.titles?" · "+S.titles+" natties":""}${bd.map(x=>" · "+x[0]+" "+x[1]).join("")}. Can you save the SWC?`;
   showModal(`<h2 style="text-align:center">FINAL GRADE</h2>
     <div class="sub" style="text-align:center">${S.daily?"🎲 DAILY "+S.daily+" · ":""}${c.name} · ${S.startYear}–${S.year} · started #${S.startRank}${g.dead?" · dissolved "+(c.diedYr||S.year):""}</div>
@@ -2281,7 +2800,9 @@ function endScreen(){
       ["THE CLIMB",g.climbPts,18,"started #"+S.startRank+" — every rank you finish above it pays"],
       ["TITLES",g.titlePts,8,S.titles+" national championship"+(S.titles===1?"":"s")+" (+2 each)"],
       ...(g.slPts?[["SUPER LEAGUE",g.slPts,8,"you took the throne"]]:[]),
-      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,6,"you killed the Super League in court"]]:[])
+      ...(g.bustPts?[["TRUST BUSTER",g.bustPts,8,S.slBusted?"you killed the Super League in court":"antitrust case progress — "+S.slCase.toFixed(1)+"/3 filings"]]:[]),
+      ...(g.coalPts?[["COALITION LEADER",g.coalPts,2,"you united the sport against the breakaway"]]:[]),
+      ...(g.defenderPts?[["IRON CURTAIN",g.defenderPts,3,"the breakaway came and your league held"]]:[])
     ].map(r=>`<div class="mrow" style="border-bottom:1px solid #1e3a5f44">
       <span style="width:118px;flex:none;font-size:10.5px;letter-spacing:1.2px;font-weight:800;color:var(--dim)">${r[0]}</span>
       <span style="flex:1;color:#a9bcd9;font-size:11.5px">${r[3]}</span>
@@ -2316,8 +2837,11 @@ function endScreen(){
   $("againBtn").onclick=()=>{showPick();};
 }
 /* ---------- boot ---------- */
-$("btnAdvance").addEventListener("click",advance);
+$("btnAdvance").addEventListener("click",()=>{sfxClick();advance()});
 $("btnVault").addEventListener("click",vaultModal);
+$("undoBtn").addEventListener("click",doUndo);
+$("soundBtn").addEventListener("click",()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";sfxClick()});
+$("autoBtn").addEventListener("click",toggleAuto);
 document.querySelectorAll(".mbtn[data-mm]").forEach(b=>b.addEventListener("click",()=>{
   mapMode=b.dataset.mm;
   document.querySelectorAll(".mbtn[data-mm]").forEach(x=>x.classList.toggle("on",x===b));
@@ -2325,7 +2849,11 @@ document.querySelectorAll(".mbtn[data-mm]").forEach(b=>b.addEventListener("click
 }));
 $("btnRich").addEventListener("click",richModal);
 document.addEventListener("keydown",e=>{
-  if(e.code==="Space"&&$("shade").style.display!=="flex"){e.preventDefault();advance();}
+  if($("shade").style.display==="flex")return;
+  if(e.code==="Space"){e.preventDefault();advance();}
+  if(e.key==="z"||e.key==="Z")doUndo();
+  if(e.key==="m"||e.key==="M"){soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";sfxClick();}
+  if(e.key==="a"||e.key==="A")toggleAuto();
 });
 buildMapBase();
 initMapNav();
